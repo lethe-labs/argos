@@ -11,21 +11,14 @@
     <string name="admin_activate">Turn on unlock monitoring</string>
 
     <string name="depart">I\'m leaving</string>
-    <string name="depart_hint">Takes a snapshot of your phone and gives you a seal code to write down.</string>
-    <string name="had_code">I wrote down a seal code</string>
-
-    <string name="seal_title">Your seal code</string>
-    <string name="seal_instructions">Write this code on paper and keep it on you. It will never be shown again.</string>
-    <string name="seal_done">I wrote it down</string>
+    <string name="depart_hint">Takes a snapshot of your phone.</string>
 
     <string name="away_since">Away since %1$s</string>
-    <string name="seal_input">Seal code</string>
     <string name="come_back">I\'m back</string>
 
     <string name="verdict_clean">Nothing abnormal detected</string>
     <string name="verdict_suspicious">Activity detected while you were away</string>
     <string name="verdict_tampered">Argos itself may have been tampered with</string>
-    <string name="seal_status_mismatch">The seal code does not match.</string>
     <string name="seal_status_no_session">No departure is recorded: Argos was reset or its data erased while you were away.</string>
     <string name="journal_broken">The event journal has been altered.</string>
     <string name="anchor_missing">The journal no longer contains your departure.</string>
@@ -46,4 +39,16 @@
 
     <string name="done">Done</string>
     <string name="error_generic">Something went wrong: %1$s</string>
+    <string name="had_session">I had started an absence</string>
+    <string name="departed_title">Absence started</string>
+    <string name="words_instructions">Remember these three words. Nothing to write down.</string>
+    <string name="words_hint">When you come back, Argos will show them to you: you\'ll only have to confirm they\'re yours.</string>
+    <string name="understood">Got it</string>
+    <string name="welcome_back">Welcome back</string>
+    <string name="departed_with_words">You left on %1$s, with these words:</string>
+    <string name="confirm_question">Is this your departure?</string>
+    <string name="confirm_yes">Yes, that\'s me</string>
+    <string name="confirm_no">No, it isn\'t mine</string>
+    <string name="seal_status_rejected">You didn\'t recognise this departure: someone may have reset Argos and started a fake one.</string>
+    <string name="seal_status_key_missing">Argos\'s verification key is gone: the app was reset or reinstalled while you were away.</string>
 </resources>

@@ -9,7 +9,8 @@ import io.github.lethe_labs.argos.core.journal.JournalEventType
 import io.github.lethe_labs.argos.core.report.Departure
 import io.github.lethe_labs.argos.core.report.IntegrityReport
 import io.github.lethe_labs.argos.core.report.ReportBuilder
-import io.github.lethe_labs.argos.core.seal.SealCode
+import io.github.lethe_labs.argos.core.seal.SealWords
+import io.github.lethe_labs.argos.core.seal.WordLists
 import io.github.lethe_labs.argos.platform.ArgosAdminReceiver
 import io.github.lethe_labs.argos.platform.SnapshotCollector
 import kotlinx.coroutines.Dispatchers
@@ -17,13 +18,15 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.util.Locale
 import java.util.UUID
 
 sealed interface UiState {
     data object Loading : UiState
     data class Idle(val adminActive: Boolean) : UiState
-    data class SealShown(val code: String) : UiState
+    data class WordsShown(val words: List<String>) : UiState
     data class Away(val departedAtMs: Long, val adminActive: Boolean) : UiState
+    data class Confirming(val departedAtMs: Long, val words: List<String>) : UiState
     data class ReportShown(val report: IntegrityReport) : UiState
     data class Failed(val message: String) : UiState
 }
@@ -63,39 +66,56 @@ class ArgosViewModel(app: Application) : AndroidViewModel(app) {
             snapshot = snapshot,
             journalHeadSeq = head.seq,
             journalHeadHash = head.hash,
+            wordLanguage = WordLists.languageFor(Locale.getDefault().language),
         )
-        val code = SealCode.derive(departure.sealRecord()) { data ->
-            container.sealKeys.hmacOrNull(data) ?: error("seal key unavailable")
-        }
+        val words = sealWords(departure) ?: error("seal key unavailable")
         container.sessions.save(departure)
-        _state.value = UiState.SealShown(code)
+        _state.value = UiState.WordsShown(words)
     }
 
-    fun sealNoted() = refresh()
+    fun wordsNoted() = refresh()
 
-    fun comeBack(typedSeal: String) = runGuarded {
-        val departure = container.sessions.load()
-        val journal = container.journal.readAll()
-        val expected = departure?.let { d ->
-            runCatching {
-                SealCode.derive(d.sealRecord()) { data ->
-                    container.sealKeys.hmacOrNull(data) ?: error("seal key missing")
-                }
-            }.getOrNull()
+    fun startReturn() = runGuarded {
+        val departure = container.sessions.load() ?: return@runGuarded finishReturn(null, false, false)
+        val words = sealWords(departure)
+        if (words == null) {
+            // Key gone: the words cannot be shown, and that alone means reset.
+            finishReturn(departure, sealKeyPresent = false, confirmed = false)
+        } else {
+            _state.value = UiState.Confirming(departure.departedAtMs, words)
         }
+    }
+
+    fun confirmDeparture(isMine: Boolean) = runGuarded {
+        finishReturn(container.sessions.load(), sealKeyPresent = true, confirmed = isMine)
+    }
+
+    /** From the home screen: "I had started an absence", yet the app has none. */
+    fun reportMissingDeparture() = runGuarded {
+        finishReturn(container.sessions.load(), sealKeyPresent = false, confirmed = false)
+    }
+
+    fun closeReport() = refresh()
+
+    private fun finishReturn(departure: Departure?, sealKeyPresent: Boolean, confirmed: Boolean) {
         val report = ReportBuilder.build(
             departure = departure,
-            typedSeal = typedSeal,
-            expectedSeal = expected,
+            sealKeyPresent = sealKeyPresent,
+            departureConfirmed = confirmed,
             now = SnapshotCollector.collect(getApplication()),
-            journal = journal,
+            journal = container.journal.readAll(),
         )
         container.journal.append(JournalEventType.RETURN)
         container.sessions.clear()
         _state.value = UiState.ReportShown(report)
     }
 
-    fun closeReport() = refresh()
+    // Recomputed from the Keystore key every time, never stored (see SealWords).
+    private fun sealWords(departure: Departure): List<String>? = runCatching {
+        SealWords.derive(departure.sealRecord(), departure.wordLanguage) { data ->
+            container.sealKeys.hmacOrNull(data) ?: error("seal key missing")
+        }
+    }.getOrNull()
 
     private fun isAdminActive(): Boolean {
         val app = getApplication<Application>()

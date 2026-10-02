@@ -20,12 +20,13 @@ acts; Argos tells you whether you need to.
 ## How it works
 
 1. **Before leaving**, tap *I'm leaving*. Argos snapshots the device state and
-   shows you a short **seal code**. Write it on paper and keep it on you.
+   shows you **three words** to remember. Nothing to write down.
 2. **While you are away**, Argos logs unlock attempts and reboots in a
    tamper-evident journal.
-3. **On return**, tap *I'm back* and type the seal code. Argos compares the
-   current state with the departure snapshot, reads the journal, and gives you
-   a verdict: *clean*, *suspicious*, or *tampered*.
+3. **On return**, tap *I'm back*. Argos shows you the time you left and your
+   three words, and you confirm in one tap that this is your departure. It
+   then compares the current state with the departure snapshot, reads the
+   journal, and gives you a verdict: *clean*, *suspicious*, or *tampered*.
 
 ## What it detects
 
@@ -45,13 +46,21 @@ An intruder may try to cover their tracks. Two mechanisms make that visible:
 
 - **A hash-chained journal.** Each entry commits to the previous one, so
   editing, deleting or reordering an entry breaks the chain.
-- **A paper seal.** The seal code is an HMAC of the departure record under a
-  fresh Android Keystore key that cannot leave the device. If the app is reset,
-  reinstalled, or its departure record edited, the code no longer matches. An
-  intruder cannot forge it: they have neither the key nor your paper.
+- **Three seal words.** They are derived from the departure record by HMAC,
+  under a fresh Android Keystore key that cannot leave the device, and are
+  recomputed on return rather than stored. If the app is reset or
+  reinstalled, the key is gone and Argos says so. If an intruder resets Argos
+  and starts a fake departure, it gets a new key and therefore different
+  words — and a different departure time — which you notice at a glance.
 
-The app also blocks screenshots, so the seal code cannot end up in the gallery
-of the very phone the intruder gets their hands on.
+How strong the words are, plainly: three words out of 256 give about 24 bits.
+An intruder who already knows your PIN can read your words on the return
+screen, but cannot make a fake departure produce them; they could only keep
+starting departures until three random words happen to match, around 16
+million attempts on the phone itself.
+
+The app also blocks screenshots, so your words and reports never end up in the
+gallery or the task switcher.
 
 ## What it cannot detect
 
@@ -70,6 +79,11 @@ Read this before trusting a *clean* verdict.
 
 Your own unlock when you come back is logged too. Argos marks the most recent
 one as *probably you*; check its time anyway.
+
+The seal relies on you recognising your three words. If you have forgotten
+them, the departure time shown alongside is still a check: a fake departure
+would show a later time, unless the intruder changed the clock — which Argos
+reports.
 
 ## Permissions
 

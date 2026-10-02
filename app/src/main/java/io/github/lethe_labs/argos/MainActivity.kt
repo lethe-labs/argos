@@ -14,9 +14,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Blocks screenshots and the recents thumbnail. Without it, a screenshot
-        // of the seal code would land in the gallery of the very phone the
-        // intruder gets access to, defeating the point of writing it on paper.
+        // Blocks screenshots and the recents thumbnail, so the seal words and
+        // the reports never end up in the gallery or the task switcher of a
+        // phone someone else may get their hands on.
         window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
 
         setContent {

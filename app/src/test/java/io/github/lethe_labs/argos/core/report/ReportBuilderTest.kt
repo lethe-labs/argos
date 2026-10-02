@@ -1,60 +1,58 @@
 package io.github.lethe_labs.argos.core.report
 
+import io.github.lethe_labs.argos.core.deviceSnapshot
 import io.github.lethe_labs.argos.core.journal.HashChain
 import io.github.lethe_labs.argos.core.journal.JournalEntry
 import io.github.lethe_labs.argos.core.journal.JournalEventType
 import io.github.lethe_labs.argos.core.later
-import io.github.lethe_labs.argos.core.seal.SealCode
-import io.github.lethe_labs.argos.core.deviceSnapshot
+import io.github.lethe_labs.argos.core.seal.WordLists
 import io.github.lethe_labs.argos.core.snapshot.Anomaly.Kind
 import io.github.lethe_labs.argos.core.snapshot.Severity
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Test
-import javax.crypto.Mac
-import javax.crypto.spec.SecretKeySpec
 
 class ReportBuilderTest {
-
-    private val hmac: (ByteArray) -> ByteArray = { data ->
-        Mac.getInstance("HmacSHA256").apply { init(SecretKeySpec("test-key".toByteArray(), "HmacSHA256")) }.doFinal(data)
-    }
 
     private fun append(chain: List<JournalEntry>, type: String, at: Long) = chain + HashChain.next(chain, at, type, "")
 
     private val beforeSnapshot = deviceSnapshot()
     private val journalAtDeparture = append(append(emptyList(), JournalEventType.BOOT, 1L), JournalEventType.DEPARTURE, 2L)
     private val head = journalAtDeparture.last()
-    private val departure = Departure("s1", head.timestampMs, beforeSnapshot, head.seq, head.hash)
-    private val seal = SealCode.derive(departure.sealRecord(), hmac)
+    private val departure = Departure("s1", head.timestampMs, beforeSnapshot, head.seq, head.hash, WordLists.FRENCH)
     private val nowSnapshot = beforeSnapshot.later(3_600_000L)
 
     private fun report(
         journal: List<JournalEntry>? = journalAtDeparture,
-        typed: String = seal,
-        expected: String? = seal,
+        keyPresent: Boolean = true,
+        confirmed: Boolean = true,
         dep: Departure? = departure,
-    ) = ReportBuilder.build(dep, typed, expected, nowSnapshot, journal)
+        now: io.github.lethe_labs.argos.core.snapshot.DeviceSnapshot = nowSnapshot,
+    ) = ReportBuilder.build(dep, keyPresent, confirmed, now, journal)
 
     @Test
-    fun `untouched phone is clean`() {
-        assertEquals(IntegrityReport.Verdict.CLEAN, report().verdict)
+    fun `untouched phone confirmed by its owner is clean`() {
+        val r = report()
+        assertEquals(SealStatus.MATCH, r.sealStatus)
+        assertEquals(IntegrityReport.Verdict.CLEAN, r.verdict)
     }
 
     @Test
-    fun `wrong seal code means tampered`() {
-        val r = report(typed = "0000-0000")
-        assertEquals(SealStatus.MISMATCH, r.sealStatus)
+    fun `a departure the user does not recognise means tampered`() {
+        val r = report(confirmed = false)
+        assertEquals(SealStatus.REJECTED, r.sealStatus)
         assertEquals(IntegrityReport.Verdict.TAMPERED, r.verdict)
     }
 
     @Test
-    fun `missing seal key means tampered`() {
-        assertEquals(IntegrityReport.Verdict.TAMPERED, report(expected = null).verdict)
+    fun `a missing seal key means tampered, whatever the user answers`() {
+        val r = report(keyPresent = false, confirmed = true)
+        assertEquals(SealStatus.KEY_MISSING, r.sealStatus)
+        assertEquals(IntegrityReport.Verdict.TAMPERED, r.verdict)
     }
 
     @Test
-    fun `no departure on record while the user holds a code means tampered`() {
+    fun `no departure on record while the user had started one means tampered`() {
         val r = report(dep = null)
         assertEquals(SealStatus.NO_SESSION, r.sealStatus)
         assertEquals(IntegrityReport.Verdict.TAMPERED, r.verdict)
@@ -80,16 +78,14 @@ class ReportBuilderTest {
 
     @Test
     fun `failed unlock while away is suspicious`() {
-        val journal = append(journalAtDeparture, JournalEventType.UNLOCK_FAILED, 10L)
-        val r = report(journal = journal)
+        val r = report(journal = append(journalAtDeparture, JournalEventType.UNLOCK_FAILED, 10L))
         assertEquals(IntegrityReport.Verdict.SUSPICIOUS, r.verdict)
         assertEquals(Kind.UNLOCK_FAILED, r.anomalies.single().kind)
     }
 
     @Test
     fun `the user's own unlock on return alone stays clean`() {
-        val journal = append(journalAtDeparture, JournalEventType.UNLOCK_SUCCEEDED, 10L)
-        val r = report(journal = journal)
+        val r = report(journal = append(journalAtDeparture, JournalEventType.UNLOCK_SUCCEEDED, 10L))
         assertEquals(Severity.INFO, r.anomalies.single().severity)
         assertEquals(IntegrityReport.Verdict.CLEAN, r.verdict)
     }
@@ -104,25 +100,29 @@ class ReportBuilderTest {
 
     @Test
     fun `events before departure are ignored`() {
-        val before = append(emptyList(), JournalEventType.UNLOCK_FAILED, 1L)
-        val withDeparture = append(before, JournalEventType.DEPARTURE, 2L)
+        val withDeparture = append(append(emptyList(), JournalEventType.UNLOCK_FAILED, 1L), JournalEventType.DEPARTURE, 2L)
         val h = withDeparture.last()
-        val dep = Departure("s2", h.timestampMs, beforeSnapshot, h.seq, h.hash)
-        val code = SealCode.derive(dep.sealRecord(), hmac)
-        val r = ReportBuilder.build(dep, code, code, nowSnapshot, withDeparture)
-        assertEquals(IntegrityReport.Verdict.CLEAN, r.verdict)
+        val dep = Departure("s2", h.timestampMs, beforeSnapshot, h.seq, h.hash, WordLists.FRENCH)
+        assertEquals(IntegrityReport.Verdict.CLEAN, report(journal = withDeparture, dep = dep).verdict)
     }
 
     @Test
     fun `turning monitoring off is critical`() {
-        val journal = append(journalAtDeparture, JournalEventType.ADMIN_DISABLED, 10L)
-        assertEquals(Severity.CRITICAL, report(journal = journal).anomalies.single().severity)
+        val r = report(journal = append(journalAtDeparture, JournalEventType.ADMIN_DISABLED, 10L))
+        assertEquals(Severity.CRITICAL, r.anomalies.single().severity)
     }
 
     @Test
     fun `anomalies are sorted most severe first`() {
-        val journal = append(journalAtDeparture, JournalEventType.UNLOCK_FAILED, 10L)
-        val r = ReportBuilder.build(departure, seal, seal, nowSnapshot.copy(adbEnabled = true), journal)
+        val r = report(
+            journal = append(journalAtDeparture, JournalEventType.UNLOCK_FAILED, 10L),
+            now = nowSnapshot.copy(adbEnabled = true),
+        )
         assertEquals(Severity.CRITICAL, r.anomalies.first().severity)
+    }
+
+    @Test
+    fun `the word language is bound into the seal record`() {
+        assertEquals(false, departure.sealRecord() == departure.copy(wordLanguage = WordLists.ENGLISH).sealRecord())
     }
 }

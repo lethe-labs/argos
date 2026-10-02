@@ -30,6 +30,7 @@ internal object Json {
         .put("departedAtMs", d.departedAtMs)
         .put("journalHeadSeq", d.journalHeadSeq)
         .put("journalHeadHash", d.journalHeadHash)
+        .put("wordLanguage", d.wordLanguage)
         .put("snapshot", snapshotToJson(d.snapshot))
 
     fun departureFromJson(o: JSONObject): Departure = Departure(
@@ -38,6 +39,7 @@ internal object Json {
         snapshot = snapshotFromJson(o.getJSONObject("snapshot")),
         journalHeadSeq = o.getLong("journalHeadSeq"),
         journalHeadHash = o.getString("journalHeadHash"),
+        wordLanguage = o.getString("wordLanguage"),
     )
 
     private fun snapshotToJson(s: DeviceSnapshot): JSONObject = JSONObject()

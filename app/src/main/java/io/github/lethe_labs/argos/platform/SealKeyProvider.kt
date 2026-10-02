@@ -10,8 +10,8 @@ import javax.crypto.SecretKey
 /**
  * Holds the seal key in the Android Keystore, where it cannot be exported.
  *
- * A fresh key is generated at every departure, so a code written down for a
- * previous trip can never validate a later one.
+ * A fresh key is generated at every departure, so each trip gets its own
+ * words and the words of a previous trip can never vouch for a later one.
  */
 class SealKeyProvider {
 
