@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Argos</string>
+    <string name="tagline">Find out whether your phone was touched while you were away.</string>
+
+    <string name="admin_description">Logs unlock attempts. Cannot lock or erase your device.</string>
+    <string name="admin_explanation">Argos only watches unlock attempts, so it can tell you if someone tried to get into your phone. It can never lock or erase your device.</string>
+    <string name="admin_disable_warning">Turning this off stops Argos from logging unlock attempts. The change itself is recorded.</string>
+    <string name="admin_active">Unlock monitoring is on.</string>
+    <string name="admin_inactive">Unlock monitoring is off. Turn it on so Argos can log unlock attempts while you are away.</string>
+    <string name="admin_activate">Turn on unlock monitoring</string>
+
+    <string name="depart">I\'m leaving</string>
+    <string name="depart_hint">Takes a snapshot of your phone and gives you a seal code to write down.</string>
+    <string name="had_code">I wrote down a seal code</string>
+
+    <string name="seal_title">Your seal code</string>
+    <string name="seal_instructions">Write this code on paper and keep it on you. It will never be shown again.</string>
+    <string name="seal_done">I wrote it down</string>
+
+    <string name="away_since">Away since %1$s</string>
+    <string name="seal_input">Seal code</string>
+    <string name="come_back">I\'m back</string>
+
+    <string name="verdict_clean">Nothing abnormal detected</string>
+    <string name="verdict_suspicious">Activity detected while you were away</string>
+    <string name="verdict_tampered">Argos itself may have been tampered with</string>
+    <string name="seal_status_mismatch">The seal code does not match.</string>
+    <string name="seal_status_no_session">No departure is recorded: Argos was reset or its data erased while you were away.</string>
+    <string name="journal_broken">The event journal has been altered.</string>
+    <string name="anchor_missing">The journal no longer contains your departure.</string>
+
+    <string name="anomaly_rebooted">The phone was restarted (%1$s time(s))</string>
+    <string name="anomaly_clock_changed">The clock was changed</string>
+    <string name="anomaly_adb_enabled">USB debugging was turned on</string>
+    <string name="anomaly_dev_options">Developer options were turned on</string>
+    <string name="anomaly_app_installed">App installed: %1$s</string>
+    <string name="anomaly_app_removed">App removed: %1$s</string>
+    <string name="anomaly_accessibility">New accessibility service: %1$s</string>
+    <string name="anomaly_device_admin">New device administrator: %1$s</string>
+    <string name="anomaly_sim_changed">SIM card changed (%1$s)</string>
+    <string name="anomaly_unlock_failed">Failed unlock attempt at %1$s</string>
+    <string name="anomaly_unlock_succeeded">Phone unlocked at %1$s</string>
+    <string name="anomaly_unlock_last">Phone unlocked at %1$s (probably you, on your return)</string>
+    <string name="anomaly_admin_disabled">Unlock monitoring was turned off at %1$s</string>
+
+    <string name="done">Done</string>
+    <string name="error_generic">Something went wrong: %1$s</string>
+</resources>

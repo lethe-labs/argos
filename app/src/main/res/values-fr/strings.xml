@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tagline">Sache si quelqu\'un a touché à ton téléphone pendant ton absence.</string>
+
+    <string name="admin_description">Consigne les tentatives de déverrouillage. Ne peut ni verrouiller ni effacer l\'appareil.</string>
+    <string name="admin_explanation">Argos surveille uniquement les tentatives de déverrouillage, pour te dire si quelqu\'un a essayé d\'entrer dans ton téléphone. Il ne peut jamais le verrouiller ni l\'effacer.</string>
+    <string name="admin_disable_warning">Désactiver ceci empêche Argos de consigner les tentatives de déverrouillage. Le changement lui-même est enregistré.</string>
+    <string name="admin_active">La surveillance des déverrouillages est active.</string>
+    <string name="admin_inactive">La surveillance des déverrouillages est désactivée. Active-la pour qu\'Argos consigne les tentatives pendant ton absence.</string>
+    <string name="admin_activate">Activer la surveillance des déverrouillages</string>
+
+    <string name="depart">Je pars</string>
+    <string name="depart_hint">Prend un instantané de ton téléphone et te donne un code de sceau à noter.</string>
+    <string name="had_code">J\'avais noté un code de sceau</string>
+
+    <string name="seal_title">Ton code de sceau</string>
+    <string name="seal_instructions">Note ce code sur papier et garde-le sur toi. Il ne sera plus jamais affiché.</string>
+    <string name="seal_done">C\'est noté</string>
+
+    <string name="away_since">Absent depuis le %1$s</string>
+    <string name="seal_input">Code de sceau</string>
+    <string name="come_back">Je reviens</string>
+
+    <string name="verdict_clean">Rien d\'anormal détecté</string>
+    <string name="verdict_suspicious">Activité détectée pendant ton absence</string>
+    <string name="verdict_tampered">Argos lui-même a peut-être été manipulé</string>
+    <string name="seal_status_mismatch">Le code de sceau ne correspond pas.</string>
+    <string name="seal_status_no_session">Aucun départ n\'est enregistré : Argos a été réinitialisé ou ses données effacées pendant ton absence.</string>
+    <string name="journal_broken">Le journal des événements a été modifié.</string>
+    <string name="anchor_missing">Le journal ne contient plus ton départ.</string>
+
+    <string name="anomaly_rebooted">Le téléphone a été redémarré (%1$s fois)</string>
+    <string name="anomaly_clock_changed">L\'horloge a été modifiée</string>
+    <string name="anomaly_adb_enabled">Le débogage USB a été activé</string>
+    <string name="anomaly_dev_options">Les options pour les développeurs ont été activées</string>
+    <string name="anomaly_app_installed">App installée : %1$s</string>
+    <string name="anomaly_app_removed">App supprimée : %1$s</string>
+    <string name="anomaly_accessibility">Nouveau service d\'accessibilité : %1$s</string>
+    <string name="anomaly_device_admin">Nouvel administrateur de l\'appareil : %1$s</string>
+    <string name="anomaly_sim_changed">Carte SIM changée (%1$s)</string>
+    <string name="anomaly_unlock_failed">Tentative de déverrouillage ratée le %1$s</string>
+    <string name="anomaly_unlock_succeeded">Téléphone déverrouillé le %1$s</string>
+    <string name="anomaly_unlock_last">Téléphone déverrouillé le %1$s (sans doute toi, à ton retour)</string>
+    <string name="anomaly_admin_disabled">Surveillance des déverrouillages désactivée le %1$s</string>
+
+    <string name="done">Terminer</string>
+    <string name="error_generic">Une erreur est survenue : %1$s</string>
+</resources>

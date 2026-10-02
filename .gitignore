@@ -1,0 +1,65 @@
+# ─── Build outputs ──────────────────────────────────────────────
+.gradle/
+build/
+**/build/
+/captures
+.externalNativeBuild
+.cxx
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# ─── IDE / editor metadata ──────────────────────────────────────
+*.iml
+/.idea/
+.idea/**
+.vscode/
+*.swp
+*.swo
+*.bak
+*~
+
+# ─── OS metadata ────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── Local Android config (machine-specific) ────────────────────
+/local.properties
+local.properties
+
+# ─── Secrets — NEVER COMMIT ─────────────────────────────────────
+keystore.properties
+*.keystore
+*.jks
+*.pem
+*.p12
+.env
+.env.*
+*.secret
+
+# ─── Logs ───────────────────────────────────────────────────────
+*.log
+hs_err_pid*
+
+# ─── Coverage reports ───────────────────────────────────────────
+/coverage
+*.gcda
+*.gcno
+
+# ─── Session / personal scratch files ───────────────────────────
+SESSION_*.md
+*.scratch
+TODO.private.md
+NOTES.private.md
+
+# ─── Presentation assets generated during marketing prep ────────
+# (uncomment if you want to keep marketing assets out of the public repo)
+presentation_assets/
+oblivion_sales_*.html
+oblivion_promo.*
+oblivion_forum_post.md
+oblivion_telegram.md
+oblivion_presentation.html 
+oblivion_sales_image.png 
