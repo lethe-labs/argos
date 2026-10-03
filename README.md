@@ -15,7 +15,8 @@ with.
 > **Status: pre-alpha.** The core logic is unit-tested. On a real device,
 > Argos has so far been tested on a **recent Google Pixel running Android 17**:
 > failed unlocks, a SIM card removed and put back, and apps opened while away
-> were all detected. The other checks have not yet been tried on a device,
+> were all detected, and the optional front photo was taken on SIM removal
+> and saved to the gallery. The other checks have not yet been tried on a device,
 > nor has any other phone. Do not rely on it yet.
 
 Argos never locks, wipes or modifies your device. It only observes. It is a
