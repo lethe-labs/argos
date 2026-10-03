@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.Argos" parent="android:Theme.Material.NoActionBar" />
+    <style name="Theme.Argos" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/argos_night</item>
+        <item name="android:statusBarColor">@color/argos_night</item>
+        <item name="android:navigationBarColor">@color/argos_night</item>
+    </style>
+    <color name="argos_night">#0E151E</color>
     <color name="ic_launcher_background">#121B26</color>
 </resources>

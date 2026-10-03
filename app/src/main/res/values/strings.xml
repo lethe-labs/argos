@@ -1,23 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Argos</string>
+    <string name="app_name" translatable="false">Argos</string>
     <string name="tagline">Find out whether your phone was touched while you were away.</string>
 
     <string name="admin_description">Logs unlock attempts. Cannot lock or erase your device.</string>
     <string name="admin_explanation">Argos only watches unlock attempts, so it can tell you if someone tried to get into your phone. It can never lock or erase your device.</string>
     <string name="admin_disable_warning">Turning this off stops Argos from logging unlock attempts. The change itself is recorded.</string>
-    <string name="admin_active">Unlock monitoring is on.</string>
-    <string name="admin_inactive">Unlock monitoring is off. Turn it on so Argos can log unlock attempts while you are away.</string>
-    <string name="admin_activate">Turn on unlock monitoring</string>
 
     <string name="depart">I\'m leaving</string>
-    <string name="depart_hint">Takes a snapshot of your phone.</string>
 
-    <string name="away_since">Away since %1$s</string>
     <string name="come_back">I\'m back</string>
 
     <string name="verdict_clean">Nothing abnormal detected</string>
-    <string name="verdict_suspicious">Activity detected while you were away</string>
+    <string name="verdict_suspicious">Activity while you were away</string>
     <string name="verdict_tampered">Argos itself may have been tampered with</string>
     <string name="seal_status_no_session">No departure is recorded: Argos was reset or its data erased while you were away.</string>
     <string name="journal_broken">The event journal has been altered.</string>
@@ -42,15 +37,53 @@
     <string name="done">Done</string>
     <string name="error_generic">Something went wrong: %1$s</string>
     <string name="had_session">I had started an absence</string>
-    <string name="departed_title">Absence started</string>
     <string name="words_instructions">Remember these three words. Nothing to write down.</string>
-    <string name="words_hint">When you come back, Argos will show them to you: you\'ll only have to confirm they\'re yours.</string>
+    <string name="words_hint">When you come back, Argos will show them to you. You will only have to recognise them.</string>
     <string name="understood">Got it</string>
-    <string name="welcome_back">Welcome back</string>
-    <string name="departed_with_words">You left on %1$s, with these words:</string>
-    <string name="confirm_question">Is this your departure?</string>
-    <string name="confirm_yes">Yes, that\'s me</string>
-    <string name="confirm_no">No, it isn\'t mine</string>
+    <string name="departed_with_words">Departure on %1$s, with these words:</string>
+    <string name="confirm_yes">Yes, these are my words</string>
+    <string name="confirm_no">No, this isn\'t my departure</string>
     <string name="seal_status_rejected">You didn\'t recognise this departure: someone may have reset Argos and started a fake one.</string>
     <string name="seal_status_key_missing">Argos\'s verification key is gone: the app was reset or reinstalled while you were away.</string>
+    <string name="rest_title">Argos is asleep.</string>
+    <string name="rest_body">Before you leave your phone, wake it up. It will note everything that happens while you are away.</string>
+    <string name="eyes_ready">All 8 eyes are ready</string>
+    <string name="watching_title">Argos is watching.</string>
+    <string name="watching_since">Argos has been watching since</string>
+    <string name="blind_lock_title">The Lock eye is blind</string>
+    <string name="blind_lock_body">Unlock monitoring is off. Argos will not see attempts to enter your code.</string>
+    <string name="reopen_eye">Reopen this eye</string>
+    <string name="eyes_open_count">%1$d of 8 eyes open</string>
+    <string name="recognise_title">Does Argos recognise you?</string>
+    <string name="recognise_hint">Words or a time you don\'t recognise: someone may have reset Argos.</string>
+    <string name="verdict_label">Verdict</string>
+    <string name="nothing_seen">Saw nothing</string>
+    <string name="seal_intact">Seal intact: journal and words unaltered</string>
+    <string name="emblem_asleep">Argos asleep, eyes closed</string>
+    <string name="emblem_watching">Argos awake, eyes open</string>
+    <string name="emblem_recognising">Argos watching you come back</string>
+    <string name="eye_lock">Lock</string>
+    <string name="eye_lock_role">Unlocks</string>
+    <string name="eye_wake">Wake</string>
+    <string name="eye_wake_role">Restarts</string>
+    <string name="eye_sim">SIM</string>
+    <string name="eye_sim_role">SIM card</string>
+    <string name="eye_apps">Packages</string>
+    <string name="eye_apps_role">Installed apps</string>
+    <string name="eye_clock">Clock</string>
+    <string name="eye_clock_role">System time</string>
+    <string name="eye_cable">Cable</string>
+    <string name="eye_cable_role">USB debugging and developer options</string>
+    <string name="eye_shadow">Shadow</string>
+    <string name="eye_shadow_role">Accessibility services and device admins</string>
+    <string name="eye_seal">Seal</string>
+    <string name="eye_seal_role">Journal and words</string>
+    <plurals name="eyes_saw">
+        <item quantity="one">%1$d eye saw something</item>
+        <item quantity="other">%1$d eyes saw something</item>
+    </plurals>
+    <plurals name="eyes_quiet">
+        <item quantity="one">%1$d saw nothing</item>
+        <item quantity="other">%1$d saw nothing</item>
+    </plurals>
 </resources>

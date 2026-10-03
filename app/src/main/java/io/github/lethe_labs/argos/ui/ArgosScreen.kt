@@ -4,32 +4,53 @@ import android.app.admin.DevicePolicyManager
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.lethe_labs.argos.R
@@ -38,6 +59,8 @@ import io.github.lethe_labs.argos.core.report.SealStatus
 import io.github.lethe_labs.argos.core.snapshot.Anomaly
 import io.github.lethe_labs.argos.core.snapshot.Severity
 import io.github.lethe_labs.argos.platform.ArgosAdminReceiver
+import io.github.lethe_labs.argos.ui.theme.ArgosColors
+import io.github.lethe_labs.argos.ui.theme.ArgosType
 import java.text.DateFormat
 import java.util.Date
 
@@ -56,133 +79,383 @@ fun ArgosScreen(vm: ArgosViewModel = viewModel()) {
         )
     }
 
-    Scaffold { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(24.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineMedium)
+    Column(
+        Modifier
+            .fillMaxSize()
+            .background(ArgosColors.Night)
+            .padding(horizontal = 24.dp, vertical = 24.dp),
+    ) {
+        Text(stringResource(R.string.app_name).uppercase(), style = ArgosType.Brand, color = ArgosColors.Gold)
+        Spacer(Modifier.height(16.dp))
+        Box(Modifier.weight(1f)) {
             when (val s = state) {
-                UiState.Loading -> CircularProgressIndicator()
-                is UiState.Idle -> IdleContent(s.adminActive, activateAdmin, vm::depart, vm::reportMissingDeparture)
+                UiState.Loading -> CircularProgressIndicator(Modifier.align(Alignment.Center), color = ArgosColors.Watch)
+                is UiState.Idle -> RestContent(s.adminActive, activateAdmin, vm::depart, vm::reportMissingDeparture)
                 is UiState.WordsShown -> WordsContent(s.words, vm::wordsNoted)
                 is UiState.Away -> AwayContent(s, activateAdmin, vm::startReturn)
                 is UiState.Confirming -> ConfirmContent(s, vm::confirmDeparture)
                 is UiState.ReportShown -> ReportContent(s.report, vm::closeReport)
                 is UiState.Failed -> Text(
                     stringResource(R.string.error_generic, s.message),
-                    color = MaterialTheme.colorScheme.error,
+                    style = ArgosType.Body,
+                    color = ArgosColors.Critical,
                 )
             }
         }
     }
 }
 
+/** Content scrolls if it must; the actions stay pinned to the bottom. */
 @Composable
-private fun AdminStatus(adminActive: Boolean, onActivate: () -> Unit) {
-    if (adminActive) {
-        Text(stringResource(R.string.admin_active), style = MaterialTheme.typography.bodySmall)
-    } else {
-        Text(stringResource(R.string.admin_inactive))
-        OutlinedButton(onClick = onActivate) { Text(stringResource(R.string.admin_activate)) }
+private fun Screen(actions: @Composable ColumnScope.() -> Unit, content: @Composable ColumnScope.() -> Unit) {
+    Column(Modifier.fillMaxSize()) {
+        Column(
+            Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            content = content,
+        )
+        Spacer(Modifier.height(16.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp), content = actions)
     }
 }
 
+// ---- Screens ----
+
 @Composable
-private fun IdleContent(
+private fun RestContent(
     adminActive: Boolean,
     onActivate: () -> Unit,
     onDepart: () -> Unit,
     onMissingDeparture: () -> Unit,
+) = Screen(
+    actions = {
+        PrimaryButton(stringResource(R.string.depart), onDepart)
+        TextButton(onClick = onMissingDeparture, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+            Text(stringResource(R.string.had_session), style = ArgosType.Body, color = ArgosColors.Gold)
+        }
+    },
 ) {
-    Text(stringResource(R.string.tagline))
-    AdminStatus(adminActive, onActivate)
-    Button(onClick = onDepart, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.depart)) }
-    Text(stringResource(R.string.depart_hint), style = MaterialTheme.typography.bodySmall)
-    TextButton(onClick = onMissingDeparture) { Text(stringResource(R.string.had_session)) }
+    Emblem(
+        ring = List(8) { EyeLook(EyeState.CLOSED, ArgosColors.Asleep) },
+        center = EyeLook(EyeState.CLOSED, ArgosColors.Muted),
+        size = 240.dp,
+        description = stringResource(R.string.emblem_asleep),
+        modifier = Modifier.padding(top = 16.dp),
+    )
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(stringResource(R.string.rest_title), style = ArgosType.Title, textAlign = TextAlign.Center)
+        Text(
+            stringResource(R.string.rest_body),
+            style = ArgosType.Body, color = ArgosColors.Muted, textAlign = TextAlign.Center,
+        )
+    }
+    if (adminActive) ReadyPill() else BlindLockCard(onActivate)
 }
 
 @Composable
-private fun WordChip(word: String, modifier: Modifier = Modifier) {
+private fun WordsContent(words: List<String>, onNoted: () -> Unit) = Screen(
+    actions = { PrimaryButton(stringResource(R.string.understood), onNoted) },
+) {
+    // The one animation of the app: Argos opening its eyes as it starts watching.
+    val opening = remember { Animatable(0f) }
+    LaunchedEffect(Unit) { opening.animateTo(1f, tween(1400, easing = LinearEasing)) }
+    Emblem(
+        ring = List(8) { EyeLook(EyeState.OPEN, ArgosColors.Watch) },
+        center = EyeLook(EyeState.OPEN, ArgosColors.Watch),
+        size = 200.dp,
+        description = stringResource(R.string.emblem_watching),
+        opening = opening.value,
+    )
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(stringResource(R.string.watching_title), style = ArgosType.Title, textAlign = TextAlign.Center)
+        Text(
+            stringResource(R.string.words_instructions),
+            style = ArgosType.Body, color = ArgosColors.Muted, textAlign = TextAlign.Center,
+        )
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        words.forEach { WordTablet(it, 32.sp, Modifier.fillMaxWidth()) }
+    }
+    Text(
+        stringResource(R.string.words_hint),
+        style = ArgosType.Small, color = ArgosColors.Muted, textAlign = TextAlign.Center,
+    )
+}
+
+@Composable
+private fun AwayContent(state: UiState.Away, onActivate: () -> Unit, onBack: () -> Unit) = Screen(
+    actions = { PrimaryButton(stringResource(R.string.come_back), onBack) },
+) {
+    val pulse by rememberInfiniteTransition(label = "watch").animateFloat(
+        initialValue = 0.4f,
+        targetValue = 1.6f,
+        animationSpec = infiniteRepeatable(tween(2200), RepeatMode.Reverse),
+        label = "glow",
+    )
+    val open = EyeLook(EyeState.OPEN, ArgosColors.Watch)
+    val lock = if (state.adminActive) open else EyeLook(EyeState.BLIND, ArgosColors.Warning)
+    Emblem(
+        ring = listOf(lock) + List(7) { open },
+        center = open,
+        size = 230.dp,
+        description = stringResource(R.string.emblem_watching),
+        glow = pulse,
+    )
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(stringResource(R.string.watching_since).uppercase(), style = ArgosType.Label, color = ArgosColors.Muted)
+        Text(formatDeparture(state.departedAtMs), style = ArgosType.Display, textAlign = TextAlign.Center)
+    }
+    if (!state.adminActive) BlindLockCard(onActivate)
+    Text(
+        stringResource(R.string.eyes_open_count, if (state.adminActive) 8 else 7),
+        style = ArgosType.Small, color = ArgosColors.Muted,
+    )
+}
+
+@Composable
+private fun ConfirmContent(state: UiState.Confirming, onAnswer: (Boolean) -> Unit) = Screen(
+    actions = {
+        PrimaryButton(stringResource(R.string.confirm_yes)) { onAnswer(true) }
+        OutlinedButton(
+            onClick = { onAnswer(false) },
+            modifier = Modifier.fillMaxWidth().height(52.dp),
+            shape = RoundedCornerShape(14.dp),
+            border = BorderStroke(1.dp, ArgosColors.Line),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = ArgosColors.Text),
+        ) { Text(stringResource(R.string.confirm_no), style = ArgosType.Strong) }
+    },
+) {
+    Emblem(
+        ring = List(8) { EyeLook(EyeState.OPEN, ArgosColors.Gold) },
+        center = EyeLook(EyeState.OPEN, ArgosColors.Gold),
+        size = 160.dp,
+        description = stringResource(R.string.emblem_recognising),
+    )
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(stringResource(R.string.recognise_title), style = ArgosType.Title, textAlign = TextAlign.Center)
+        Text(
+            stringResource(R.string.departed_with_words, formatDeparture(state.departedAtMs)),
+            style = ArgosType.Body, color = ArgosColors.Muted, textAlign = TextAlign.Center,
+        )
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+        state.words.forEach { WordTablet(it, 22.sp, Modifier.weight(1f)) }
+    }
+    Text(
+        stringResource(R.string.recognise_hint),
+        style = ArgosType.Small, color = ArgosColors.Muted, textAlign = TextAlign.Center,
+    )
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ReportContent(report: IntegrityReport, onDone: () -> Unit) = Screen(
+    actions = { PrimaryButton(stringResource(R.string.done), onDone) },
+) {
+    val sightings = sightings(report)
+    val quiet = Watcher.entries.filter { it !in sightings }
+    val verdictColor = when (report.verdict) {
+        IntegrityReport.Verdict.CLEAN -> ArgosColors.Watch
+        IntegrityReport.Verdict.SUSPICIOUS -> ArgosColors.Warning
+        IntegrityReport.Verdict.TAMPERED -> ArgosColors.Critical
+    }
+    val verdictText = when (report.verdict) {
+        IntegrityReport.Verdict.CLEAN -> stringResource(R.string.verdict_clean)
+        IntegrityReport.Verdict.SUSPICIOUS -> stringResource(R.string.verdict_suspicious)
+        IntegrityReport.Verdict.TAMPERED -> stringResource(R.string.verdict_tampered)
+    }
+
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+        Emblem(
+            ring = Watcher.entries.map { EyeLook(EyeState.OPEN, sightings[it]?.color ?: ArgosColors.Watch) },
+            center = EyeLook(EyeState.OPEN, verdictColor),
+            size = 120.dp,
+            description = verdictText,
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(stringResource(R.string.verdict_label).uppercase(), style = ArgosType.Label, color = ArgosColors.Muted)
+            Text(verdictText, style = ArgosType.Display, color = verdictColor)
+        }
+    }
+
+    val res = LocalContext.current.resources
+    Text(
+        res.getQuantityString(R.plurals.eyes_saw, sightings.size, sightings.size) + " · " +
+            res.getQuantityString(R.plurals.eyes_quiet, quiet.size, quiet.size),
+        style = ArgosType.Small, color = ArgosColors.Muted,
+        modifier = Modifier.fillMaxWidth(),
+    )
+
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        sightings.forEach { (watcher, sighting) -> SightingCard(watcher, sighting) }
+    }
+
+    if (quiet.isNotEmpty()) {
+        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(stringResource(R.string.nothing_seen).uppercase(), style = ArgosType.Label, color = ArgosColors.Muted)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                quiet.forEach { watcher ->
+                    Box(
+                        Modifier
+                            .size(40.dp)
+                            .border(1.dp, ArgosColors.Line, RoundedCornerShape(10.dp)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        WatcherIcon(watcher, ArgosColors.Watch, 18.dp, stringResource(watcher.role))
+                    }
+                }
+            }
+        }
+    }
+
+    if (Watcher.SEAL !in sightings) {
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            WatcherIcon(Watcher.SEAL, ArgosColors.Watch, 18.dp)
+            Text(stringResource(R.string.seal_intact), style = ArgosType.Small, color = ArgosColors.Muted)
+        }
+    }
+}
+
+// ---- Report model for display ----
+
+private class Sighting(val color: Color, val lines: List<String>)
+
+/** What each eye saw, in emblem order. Eyes that saw nothing are absent. */
+@Composable
+private fun sightings(report: IntegrityReport): Map<Watcher, Sighting> {
+    val out = linkedMapOf<Watcher, Sighting>()
+    val byWatcher = report.anomalies.groupBy { Watcher.of(it.kind) }
+    Watcher.entries.forEach { watcher ->
+        if (watcher == Watcher.SEAL) {
+            val lines = sealLines(report)
+            if (lines.isNotEmpty()) out[watcher] = Sighting(ArgosColors.Critical, lines)
+        } else {
+            val seen = byWatcher[watcher] ?: return@forEach
+            val worst = seen.maxOf { it.severity }
+            out[watcher] = Sighting(severityColor(worst), seen.map { describe(it) })
+        }
+    }
+    return out
+}
+
+@Composable
+private fun sealLines(report: IntegrityReport): List<String> = buildList {
+    when (report.sealStatus) {
+        SealStatus.NO_SESSION -> add(stringResource(R.string.seal_status_no_session))
+        SealStatus.KEY_MISSING -> add(stringResource(R.string.seal_status_key_missing))
+        SealStatus.REJECTED -> add(stringResource(R.string.seal_status_rejected))
+        SealStatus.MATCH -> Unit
+    }
+    if (!report.journalIntact) add(stringResource(R.string.journal_broken))
+    if (!report.departureAnchorFound && report.sealStatus != SealStatus.NO_SESSION) {
+        add(stringResource(R.string.anchor_missing))
+    }
+}
+
+private fun severityColor(severity: Severity): Color = when (severity) {
+    Severity.CRITICAL -> ArgosColors.Critical
+    Severity.WARNING -> ArgosColors.Warning
+    Severity.INFO -> ArgosColors.Watch
+}
+
+// ---- Pieces ----
+
+@Composable
+private fun PrimaryButton(text: String, onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth().height(56.dp),
+        shape = RoundedCornerShape(14.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = ArgosColors.Gold, contentColor = ArgosColors.OnGold),
+    ) { Text(text, style = ArgosType.Button) }
+}
+
+@Composable
+private fun WordTablet(word: String, fontSize: androidx.compose.ui.unit.TextUnit, modifier: Modifier = Modifier) {
     Surface(
-        color = MaterialTheme.colorScheme.secondaryContainer,
-        shape = MaterialTheme.shapes.medium,
+        color = ArgosColors.Surface,
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, ArgosColors.Gold.copy(alpha = 0.4f)),
         modifier = modifier,
     ) {
-        Box(Modifier.padding(horizontal = 12.dp, vertical = 12.dp), contentAlignment = Alignment.Center) {
-            Text(word, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+        Box(Modifier.padding(horizontal = 6.dp, vertical = 12.dp), contentAlignment = Alignment.Center) {
+            Text(
+                word,
+                style = ArgosType.Word.copy(fontSize = fontSize),
+                color = ArgosColors.Gold,
+                maxLines = 1,
+                softWrap = false,
+            )
         }
     }
 }
 
 @Composable
-private fun WordsContent(words: List<String>, onNoted: () -> Unit) {
-    Text(stringResource(R.string.departed_title), style = MaterialTheme.typography.titleLarge)
-    Text(stringResource(R.string.words_instructions))
-    words.forEach { WordChip(it, Modifier.fillMaxWidth()) }
-    Text(stringResource(R.string.words_hint), style = MaterialTheme.typography.bodySmall)
-    Button(onClick = onNoted, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.understood)) }
-}
-
-@Composable
-private fun AwayContent(state: UiState.Away, onActivate: () -> Unit, onBack: () -> Unit) {
-    Text(stringResource(R.string.away_since, formatDeparture(state.departedAtMs)))
-    AdminStatus(state.adminActive, onActivate)
-    Button(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.come_back)) }
-}
-
-@Composable
-private fun ConfirmContent(state: UiState.Confirming, onAnswer: (Boolean) -> Unit) {
-    Text(stringResource(R.string.welcome_back), style = MaterialTheme.typography.titleLarge)
-    Text(stringResource(R.string.departed_with_words, formatDeparture(state.departedAtMs)))
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-        state.words.forEach { WordChip(it, Modifier.weight(1f)) }
-    }
-    Text(stringResource(R.string.confirm_question), style = MaterialTheme.typography.titleMedium)
-    Button(onClick = { onAnswer(true) }, modifier = Modifier.fillMaxWidth()) {
-        Text(stringResource(R.string.confirm_yes))
-    }
-    OutlinedButton(onClick = { onAnswer(false) }, modifier = Modifier.fillMaxWidth()) {
-        Text(stringResource(R.string.confirm_no))
+private fun ReadyPill() {
+    Row(
+        Modifier
+            .border(1.dp, ArgosColors.Line, RoundedCornerShape(50))
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Box(Modifier.size(8.dp).background(ArgosColors.Watch, CircleShape))
+        Text(stringResource(R.string.eyes_ready), style = ArgosType.Small, color = ArgosColors.Muted)
     }
 }
 
+/** Shown while the device admin is off: the unlock eye cannot see. */
 @Composable
-private fun ReportContent(report: IntegrityReport, onDone: () -> Unit) {
-    val (verdictText, verdictColor) = when (report.verdict) {
-        IntegrityReport.Verdict.CLEAN -> stringResource(R.string.verdict_clean) to MaterialTheme.colorScheme.primary
-        IntegrityReport.Verdict.SUSPICIOUS -> stringResource(R.string.verdict_suspicious) to MaterialTheme.colorScheme.tertiary
-        IntegrityReport.Verdict.TAMPERED -> stringResource(R.string.verdict_tampered) to MaterialTheme.colorScheme.error
+private fun BlindLockCard(onActivate: () -> Unit) {
+    Card(ArgosColors.Warning) {
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            WatcherIcon(Watcher.LOCK, ArgosColors.Warning)
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(stringResource(R.string.blind_lock_title), style = ArgosType.Strong, color = ArgosColors.Warning)
+                Text(stringResource(R.string.blind_lock_body), style = ArgosType.Small, color = ArgosColors.Muted)
+            }
+        }
+        OutlinedButton(
+            onClick = onActivate,
+            modifier = Modifier.height(44.dp),
+            shape = RoundedCornerShape(10.dp),
+            border = BorderStroke(1.dp, ArgosColors.Warning),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = ArgosColors.Warning),
+        ) { Text(stringResource(R.string.reopen_eye), style = ArgosType.Strong) }
     }
-    Text(verdictText, style = MaterialTheme.typography.titleLarge, color = verdictColor)
-
-    when (report.sealStatus) {
-        SealStatus.NO_SESSION -> Text(stringResource(R.string.seal_status_no_session))
-        SealStatus.KEY_MISSING -> Text(stringResource(R.string.seal_status_key_missing))
-        SealStatus.REJECTED -> Text(stringResource(R.string.seal_status_rejected))
-        SealStatus.MATCH -> Unit
-    }
-    if (!report.journalIntact) Text(stringResource(R.string.journal_broken))
-    if (!report.departureAnchorFound && report.sealStatus != SealStatus.NO_SESSION) {
-        Text(stringResource(R.string.anchor_missing))
-    }
-
-    report.anomalies.forEach { anomaly ->
-        Text("•  " + describe(anomaly), color = severityColor(anomaly.severity))
-    }
-
-    Button(onClick = onDone, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.done)) }
 }
 
 @Composable
-private fun severityColor(severity: Severity): Color = when (severity) {
-    Severity.CRITICAL -> MaterialTheme.colorScheme.error
-    Severity.WARNING -> MaterialTheme.colorScheme.tertiary
-    Severity.INFO -> MaterialTheme.colorScheme.onSurfaceVariant
+private fun SightingCard(watcher: Watcher, sighting: Sighting) {
+    Card(sighting.color) {
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            WatcherIcon(watcher, sighting.color)
+            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(stringResource(watcher.label), style = ArgosType.Strong, color = sighting.color)
+                sighting.lines.forEach { Text(it, style = ArgosType.Small, color = ArgosColors.Muted) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun Card(accent: Color, content: @Composable ColumnScope.() -> Unit) {
+    Surface(
+        color = ArgosColors.Surface,
+        shape = RoundedCornerShape(14.dp),
+        border = BorderStroke(1.dp, accent.copy(alpha = 0.4f)),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp), content = content)
+    }
 }
 
 @Composable

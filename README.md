@@ -120,6 +120,9 @@ device. `platform/` reads the real device state; `ui/` is the Compose screen.
 
 [GNU Affero General Public License v3.0 or later](LICENSE).
 
+The bundled fonts, Cormorant Garamond and Manrope, are under the
+[SIL Open Font License 1.1](app/src/main/assets/licenses/).
+
 ```
 Argos — device integrity reports for Android
 Copyright (C) 2026-present  lethe-labs

@@ -5,18 +5,13 @@
     <string name="admin_description">Consigne les tentatives de déverrouillage. Ne peut ni verrouiller ni effacer l\'appareil.</string>
     <string name="admin_explanation">Argos surveille uniquement les tentatives de déverrouillage, pour te dire si quelqu\'un a essayé d\'entrer dans ton téléphone. Il ne peut jamais le verrouiller ni l\'effacer.</string>
     <string name="admin_disable_warning">Désactiver ceci empêche Argos de consigner les tentatives de déverrouillage. Le changement lui-même est enregistré.</string>
-    <string name="admin_active">La surveillance des déverrouillages est active.</string>
-    <string name="admin_inactive">La surveillance des déverrouillages est désactivée. Active-la pour qu\'Argos consigne les tentatives pendant ton absence.</string>
-    <string name="admin_activate">Activer la surveillance des déverrouillages</string>
 
     <string name="depart">Je pars</string>
-    <string name="depart_hint">Un instantané de ton téléphone sera pris.</string>
 
-    <string name="away_since">Absent depuis le %1$s</string>
-    <string name="come_back">Je reviens</string>
+    <string name="come_back">Je suis de retour</string>
 
     <string name="verdict_clean">Rien d\'anormal détecté</string>
-    <string name="verdict_suspicious">Activité détectée pendant ton absence</string>
+    <string name="verdict_suspicious">Activité pendant ton absence</string>
     <string name="verdict_tampered">Argos lui-même a peut-être été manipulé</string>
     <string name="seal_status_no_session">Aucun départ n\'est enregistré : Argos a été réinitialisé ou ses données effacées pendant ton absence.</string>
     <string name="journal_broken">Le journal des événements a été modifié.</string>
@@ -41,15 +36,55 @@
     <string name="done">Terminer</string>
     <string name="error_generic">Une erreur est survenue : %1$s</string>
     <string name="had_session">J\'avais lancé une absence</string>
-    <string name="departed_title">Absence démarrée</string>
     <string name="words_instructions">Retiens ces trois mots. Rien à noter.</string>
-    <string name="words_hint">À ton retour, Argos te les montrera : tu n\'auras qu\'à confirmer que ce sont les tiens.</string>
+    <string name="words_hint">À ton retour, Argos te les montrera. Tu n\'auras qu\'à les reconnaître.</string>
     <string name="understood">Compris</string>
-    <string name="welcome_back">Bon retour</string>
-    <string name="departed_with_words">Tu es parti le %1$s, avec ces mots :</string>
-    <string name="confirm_question">C\'est bien ton départ ?</string>
-    <string name="confirm_yes">Oui, c\'est moi</string>
-    <string name="confirm_no">Non, ce n\'est pas le mien</string>
+    <string name="departed_with_words">Départ le %1$s, avec ces mots :</string>
+    <string name="confirm_yes">Oui, ce sont mes mots</string>
+    <string name="confirm_no">Non, ce n\'est pas mon départ</string>
     <string name="seal_status_rejected">Tu n\'as pas reconnu ce départ : quelqu\'un a peut-être réinitialisé Argos et lancé un faux départ.</string>
     <string name="seal_status_key_missing">La clé de vérification d\'Argos a disparu : l\'app a été réinitialisée ou réinstallée pendant ton absence.</string>
+    <string name="rest_title">Argos sommeille.</string>
+    <string name="rest_body">Avant de laisser ton téléphone, réveille-le. Il notera tout ce qui se passe pendant ton absence.</string>
+    <string name="eyes_ready">Les 8 yeux sont prêts</string>
+    <string name="watching_title">Argos veille.</string>
+    <string name="watching_since">Argos veille depuis</string>
+    <string name="blind_lock_title">L\'œil Serrure est aveugle</string>
+    <string name="blind_lock_body">La surveillance des déverrouillages est coupée. Argos ne verra pas les tentatives de code.</string>
+    <string name="reopen_eye">Rouvrir cet œil</string>
+    <string name="eyes_open_count">%1$d yeux ouverts sur 8</string>
+    <string name="recognise_title">Argos te reconnaît-il ?</string>
+    <string name="recognise_hint">Des mots ou une heure que tu ne reconnais pas : quelqu\'un a pu réinitialiser Argos.</string>
+    <string name="verdict_label">Verdict</string>
+    <string name="nothing_seen">Rien vu</string>
+    <string name="seal_intact">Sceau intact : journal et mots non altérés</string>
+    <string name="emblem_asleep">Argos endormi, les yeux fermés</string>
+    <string name="emblem_watching">Argos éveillé, les yeux ouverts</string>
+    <string name="emblem_recognising">Argos te regarde revenir</string>
+    <string name="eye_lock">Serrure</string>
+    <string name="eye_lock_role">Déverrouillages</string>
+    <string name="eye_wake">Éveil</string>
+    <string name="eye_wake_role">Redémarrages</string>
+    <string name="eye_sim">SIM</string>
+    <string name="eye_sim_role">Carte SIM</string>
+    <string name="eye_apps">Paquets</string>
+    <string name="eye_apps_role">Apps installées</string>
+    <string name="eye_clock">Horloge</string>
+    <string name="eye_clock_role">Heure système</string>
+    <string name="eye_cable">Câble</string>
+    <string name="eye_cable_role">Débogage USB et options développeur</string>
+    <string name="eye_shadow">Ombre</string>
+    <string name="eye_shadow_role">Services d\'accessibilité et admins</string>
+    <string name="eye_seal">Sceau</string>
+    <string name="eye_seal_role">Journal et mots</string>
+    <plurals name="eyes_saw">
+        <item quantity="one">%1$d œil a vu quelque chose</item>
+        <item quantity="many">%1$d yeux ont vu quelque chose</item>
+        <item quantity="other">%1$d yeux ont vu quelque chose</item>
+    </plurals>
+    <plurals name="eyes_quiet">
+        <item quantity="one">%1$d n\'a rien vu</item>
+        <item quantity="many">%1$d n\'ont rien vu</item>
+        <item quantity="other">%1$d n\'ont rien vu</item>
+    </plurals>
 </resources>
