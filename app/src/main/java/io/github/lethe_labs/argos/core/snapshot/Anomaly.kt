@@ -17,6 +17,8 @@ data class Anomaly(
         ACCESSIBILITY_SERVICE_ADDED,
         DEVICE_ADMIN_ADDED,
         SIM_CHANGED,
+        SIM_REMOVED,
+        SIM_INSERTED,
         UNLOCK_FAILED,
         UNLOCK_SUCCEEDED,
         ADMIN_DISABLED,

@@ -12,6 +12,7 @@ import io.github.lethe_labs.argos.core.report.ReportBuilder
 import io.github.lethe_labs.argos.core.seal.SealWords
 import io.github.lethe_labs.argos.core.seal.WordLists
 import io.github.lethe_labs.argos.platform.ArgosAdminReceiver
+import io.github.lethe_labs.argos.platform.SimReceiver
 import io.github.lethe_labs.argos.platform.SnapshotCollector
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -53,6 +54,9 @@ class ArgosViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun depart() = runGuarded {
+        // Baseline for the SIM events journaled while away, in case no SIM
+        // broadcast has arrived since install.
+        SimReceiver.record(getApplication())
         // The departure entry is written first and becomes the anchor bound
         // into the seal: if the journal is later wiped, the report notices.
         val head = container.journal.append(JournalEventType.DEPARTURE)

@@ -3,6 +3,7 @@ package io.github.lethe_labs.argos.core.report
 import io.github.lethe_labs.argos.core.journal.HashChain
 import io.github.lethe_labs.argos.core.journal.JournalEntry
 import io.github.lethe_labs.argos.core.journal.JournalEventType
+import io.github.lethe_labs.argos.core.journal.SimSlots
 import io.github.lethe_labs.argos.core.snapshot.Anomaly
 import io.github.lethe_labs.argos.core.snapshot.Anomaly.Kind
 import io.github.lethe_labs.argos.core.snapshot.DeviceSnapshot
@@ -42,8 +43,11 @@ object ReportBuilder {
         val anchor = journal?.getOrNull(departure.journalHeadSeq.toInt())
         val anchorFound = anchor != null && anchor.hash == departure.journalHeadHash
 
-        val eventsWhileAway = journal.orEmpty().filter { it.seq > departure.journalHeadSeq }
-        val anomalies = SnapshotDiff.compare(departure.snapshot, now) + journalAnomalies(eventsWhileAway)
+        val (eventsBefore, eventsWhileAway) = journal.orEmpty().partition { it.seq <= departure.journalHeadSeq }
+        val simBaseline = eventsBefore.lastOrNull { it.type == JournalEventType.SIM_STATE }
+        val anomalies = SnapshotDiff.compare(departure.snapshot, now) +
+            journalAnomalies(eventsWhileAway) +
+            simAnomalies(simBaseline, eventsWhileAway)
 
         return IntegrityReport(
             sealStatus = sealStatus,
@@ -74,5 +78,35 @@ object ReportBuilder {
                 else -> null
             }
         }
+    }
+
+    /**
+     * The snapshot diff only sees the SIM at departure and at return, so a card
+     * pulled out and put back in between goes unnoticed. The journal records
+     * each change as it happens; this replays it slot by slot from the last
+     * state known before departure.
+     */
+    private fun simAnomalies(baseline: JournalEntry?, events: List<JournalEntry>): List<Anomaly> {
+        val known = mutableMapOf<Int, String>()
+        val out = mutableListOf<Anomaly>()
+        fun replay(entry: JournalEntry, report: Boolean) {
+            SimSlots.decode(entry.detail).forEachIndexed { slot, state ->
+                if (state == SimSlots.UNKNOWN) return@forEachIndexed
+                val previous = known.put(slot, state)
+                if (!report) return@forEachIndexed
+                val at = entry.timestampMs.toString()
+                // A slot seen for the first time is no change: an empty second
+                // slot is not a removed card.
+                when {
+                    previous == SimSlots.PRESENT && state == SimSlots.ABSENT ->
+                        out += Anomaly(Kind.SIM_REMOVED, Severity.WARNING, at)
+                    previous == SimSlots.ABSENT && state == SimSlots.PRESENT ->
+                        out += Anomaly(Kind.SIM_INSERTED, Severity.WARNING, at)
+                }
+            }
+        }
+        baseline?.let { replay(it, report = false) }
+        events.filter { it.type == JournalEventType.SIM_STATE }.forEach { replay(it, report = true) }
+        return out
     }
 }

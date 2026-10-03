@@ -15,7 +15,7 @@ import java.io.File
  * while credential-encrypted storage is still locked -- the very window in
  * which a seized phone is attacked. The trade-off is that this file is
  * readable earlier than credential-encrypted data, so it only ever holds event
- * types and timestamps, never the snapshot.
+ * types, timestamps and whether each SIM slot holds a card, never the snapshot.
  */
 class JournalStore(context: Context) {
 
@@ -46,6 +46,13 @@ class JournalStore(context: Context) {
                 entry
             }.getOrNull()
         }
+
+    /** Broadcasts repeat; only an actual change of [detail] for [type] is logged. */
+    fun appendIfChanged(type: String, detail: String): JournalEntry? = synchronized(lock) {
+        val chain = readAll() ?: return null
+        if (chain.lastOrNull { it.type == type }?.detail == detail) return null
+        append(type, detail)
+    }
 
     /**
      * BOOT_COMPLETED and LOCKED_BOOT_COMPLETED both fire on one boot; the boot

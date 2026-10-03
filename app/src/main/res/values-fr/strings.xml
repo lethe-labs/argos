@@ -31,6 +31,8 @@
     <string name="anomaly_accessibility">Nouveau service d\'accessibilité : %1$s</string>
     <string name="anomaly_device_admin">Nouvel administrateur de l\'appareil : %1$s</string>
     <string name="anomaly_sim_changed">Carte SIM changée (%1$s)</string>
+    <string name="anomaly_sim_removed">Carte SIM retirée le %1$s</string>
+    <string name="anomaly_sim_inserted">Carte SIM insérée le %1$s</string>
     <string name="anomaly_unlock_failed">Tentative de déverrouillage ratée le %1$s</string>
     <string name="anomaly_unlock_succeeded">Téléphone déverrouillé le %1$s</string>
     <string name="anomaly_unlock_last">Téléphone déverrouillé le %1$s (sans doute toi, à ton retour)</string>

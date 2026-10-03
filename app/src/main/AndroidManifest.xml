@@ -67,5 +67,20 @@
                 <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
+
+        <!--
+          Logs SIM insertions and removals while you are away. directBootAware
+          for the same reason as the admin receiver: a card swapped after a
+          reboot, before the first unlock, must still be recorded.
+        -->
+        <receiver
+            android:name=".platform.SimReceiver"
+            android:directBootAware="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.telephony.action.CARRIER_CONFIG_CHANGED" />
+                <action android:name="android.intent.action.SIM_STATE_CHANGED" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>

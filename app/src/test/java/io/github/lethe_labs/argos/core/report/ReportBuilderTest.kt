@@ -4,6 +4,7 @@ import io.github.lethe_labs.argos.core.deviceSnapshot
 import io.github.lethe_labs.argos.core.journal.HashChain
 import io.github.lethe_labs.argos.core.journal.JournalEntry
 import io.github.lethe_labs.argos.core.journal.JournalEventType
+import io.github.lethe_labs.argos.core.journal.SimSlots
 import io.github.lethe_labs.argos.core.later
 import io.github.lethe_labs.argos.core.seal.WordLists
 import io.github.lethe_labs.argos.core.snapshot.Anomaly.Kind
@@ -14,7 +15,17 @@ import org.junit.Test
 
 class ReportBuilderTest {
 
-    private fun append(chain: List<JournalEntry>, type: String, at: Long) = chain + HashChain.next(chain, at, type, "")
+    private fun append(chain: List<JournalEntry>, type: String, at: Long, detail: String = "") =
+        chain + HashChain.next(chain, at, type, detail)
+
+    private fun sim(chain: List<JournalEntry>, at: Long, vararg slots: String) =
+        append(chain, JournalEventType.SIM_STATE, at, SimSlots.encode(slots.toList()))
+
+    private fun departWith(journal: List<JournalEntry>): Pair<List<JournalEntry>, Departure> {
+        val withDeparture = append(journal, JournalEventType.DEPARTURE, 2L)
+        val h = withDeparture.last()
+        return withDeparture to Departure("s3", h.timestampMs, beforeSnapshot, h.seq, h.hash, WordLists.FRENCH)
+    }
 
     private val beforeSnapshot = deviceSnapshot()
     private val journalAtDeparture = append(append(emptyList(), JournalEventType.BOOT, 1L), JournalEventType.DEPARTURE, 2L)
@@ -124,5 +135,35 @@ class ReportBuilderTest {
     @Test
     fun `the word language is bound into the seal record`() {
         assertEquals(false, departure.sealRecord() == departure.copy(wordLanguage = WordLists.ENGLISH).sealRecord())
+    }
+
+    @Test
+    fun `a sim pulled out and put back while away is reported twice`() {
+        val (atDeparture, dep) = departWith(sim(emptyList(), 1L, SimSlots.PRESENT))
+        val journal = sim(sim(atDeparture, 10L, SimSlots.ABSENT), 20L, SimSlots.PRESENT)
+        val r = report(journal = journal, dep = dep)
+        assertEquals(listOf(Kind.SIM_REMOVED, Kind.SIM_INSERTED), r.anomalies.map { it.kind })
+        assertEquals("10", r.anomalies.first().detail)
+        assertEquals(IntegrityReport.Verdict.SUSPICIOUS, r.verdict)
+    }
+
+    @Test
+    fun `an empty second slot is not a removed card`() {
+        val (atDeparture, dep) = departWith(sim(emptyList(), 1L, SimSlots.PRESENT, SimSlots.ABSENT))
+        val journal = sim(atDeparture, 10L, SimSlots.PRESENT, SimSlots.ABSENT)
+        assertEquals(IntegrityReport.Verdict.CLEAN, report(journal = journal, dep = dep).verdict)
+    }
+
+    @Test
+    fun `a card still initialising says nothing about removal`() {
+        val (atDeparture, dep) = departWith(sim(emptyList(), 1L, SimSlots.PRESENT))
+        val journal = sim(sim(atDeparture, 10L, SimSlots.UNKNOWN), 20L, SimSlots.PRESENT)
+        assertEquals(IntegrityReport.Verdict.CLEAN, report(journal = journal, dep = dep).verdict)
+    }
+
+    @Test
+    fun `a removal is caught even without a baseline before departure`() {
+        val journal = sim(sim(journalAtDeparture, 10L, SimSlots.PRESENT), 20L, SimSlots.ABSENT)
+        assertEquals(Kind.SIM_REMOVED, report(journal = journal).anomalies.single().kind)
     }
 }

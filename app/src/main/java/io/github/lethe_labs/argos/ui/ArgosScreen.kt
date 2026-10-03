@@ -196,6 +196,8 @@ private fun describe(a: Anomaly): String = when (a.kind) {
     Anomaly.Kind.ACCESSIBILITY_SERVICE_ADDED -> stringResource(R.string.anomaly_accessibility, a.detail)
     Anomaly.Kind.DEVICE_ADMIN_ADDED -> stringResource(R.string.anomaly_device_admin, a.detail)
     Anomaly.Kind.SIM_CHANGED -> stringResource(R.string.anomaly_sim_changed, a.detail)
+    Anomaly.Kind.SIM_REMOVED -> stringResource(R.string.anomaly_sim_removed, formatTime(a.detail))
+    Anomaly.Kind.SIM_INSERTED -> stringResource(R.string.anomaly_sim_inserted, formatTime(a.detail))
     Anomaly.Kind.UNLOCK_FAILED -> stringResource(R.string.anomaly_unlock_failed, formatTime(a.detail))
     Anomaly.Kind.UNLOCK_SUCCEEDED -> if (a.severity == Severity.INFO) {
         stringResource(R.string.anomaly_unlock_last, formatTime(a.detail))

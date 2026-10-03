@@ -25,8 +25,8 @@ acts; Argos tells you whether you need to.
 
 1. **Before leaving**, tap *I'm leaving*. Argos snapshots the device state and
    shows you **three words** to remember. Nothing to write down.
-2. **While you are away**, Argos logs unlock attempts and reboots in a
-   tamper-evident journal.
+2. **While you are away**, Argos logs unlock attempts, reboots and SIM
+   removals in a tamper-evident journal.
 3. **On return**, tap *I'm back*. Argos shows you the time you left and your
    three words, and you confirm in one tap that this is your departure. It
    then compares the current state with the departure snapshot, reads the
@@ -42,7 +42,7 @@ acts; Argos tells you whether you need to.
 | New accessibility services or device admins | Diff of system settings — the usual signature of stalkerware |
 | USB debugging or developer options switched on | System settings |
 | Clock changed | Wall clock compared with the monotonic system clock |
-| SIM removed or operator changed | SIM state and operator code |
+| SIM removed or inserted, even if put back before you return | SIM changes logged as they happen, plus the operator code |
 
 ## How the evidence is protected
 

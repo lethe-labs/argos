@@ -17,4 +17,5 @@ object JournalEventType {
     const val ADMIN_DISABLED = "ADMIN_DISABLED"
     const val DEPARTURE = "DEPARTURE"
     const val RETURN = "RETURN"
+    const val SIM_STATE = "SIM_STATE"
 }
