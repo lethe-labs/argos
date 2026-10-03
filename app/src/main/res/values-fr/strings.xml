@@ -96,6 +96,9 @@
     <string name="anomaly_photo_tampered">Une photo frontale a été supprimée ou remplacée</string>
     <string name="watch_channel">Absence</string>
     <string name="watch_notification">Argos veille</string>
+    <string name="save_photo">Enregistrer dans la galerie</string>
+    <string name="photo_saved">Enregistrée dans la galerie, album Argos</string>
+    <string name="photo_save_failed">La photo n\'a pas pu être enregistrée</string>
     <plurals name="eyes_saw">
         <item quantity="one">%1$d œil a vu quelque chose</item>
         <item quantity="many">%1$d yeux ont vu quelque chose</item>

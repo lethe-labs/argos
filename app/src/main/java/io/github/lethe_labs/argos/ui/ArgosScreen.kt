@@ -8,6 +8,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.media.ExifInterface
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.annotation.StringRes
 import androidx.activity.result.contract.ActivityResultContracts
@@ -52,6 +53,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -77,6 +81,9 @@ import io.github.lethe_labs.argos.platform.ArgosAdminReceiver
 import io.github.lethe_labs.argos.platform.UsageReader
 import io.github.lethe_labs.argos.ui.theme.ArgosColors
 import io.github.lethe_labs.argos.ui.theme.ArgosType
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.DateFormat
 import java.util.Date
 
@@ -508,7 +515,10 @@ private fun SightingCard(watcher: Watcher, sighting: Sighting) {
                 sighting.lines.forEach { Text(it, style = ArgosType.Small, color = ArgosColors.Muted) }
             }
         }
-        sighting.photos.forEach { CapturedPhoto(it) }
+        sighting.photos.forEach {
+            CapturedPhoto(it)
+            SavePhotoButton(it)
+        }
     }
 }
 
@@ -528,6 +538,38 @@ private fun CapturedPhoto(name: String) {
             .heightIn(max = 360.dp)
             .clip(RoundedCornerShape(10.dp)),
     )
+}
+
+/** Copies the photo out of Argos so it survives the next absence. */
+@Composable
+private fun SavePhotoButton(name: String) {
+    val context = LocalContext.current
+    val captures = ArgosApp.container(context).captures
+    val scope = rememberCoroutineScope()
+    var saved by remember(name) { mutableStateOf<Boolean?>(null) }
+    val pickFile = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("image/jpeg")) { uri ->
+        if (uri != null) scope.launch { saved = withContext(Dispatchers.IO) { captures.exportTo(context, name, uri) } }
+    }
+    if (saved == true) {
+        Text(stringResource(R.string.photo_saved), style = ArgosType.Small, color = ArgosColors.Watch)
+        return
+    }
+    OutlinedButton(
+        onClick = {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                scope.launch { saved = withContext(Dispatchers.IO) { captures.exportToGallery(context, name) } }
+            } else {
+                pickFile.launch("argos-$name")
+            }
+        },
+        modifier = Modifier.height(44.dp),
+        shape = RoundedCornerShape(10.dp),
+        border = BorderStroke(1.dp, ArgosColors.Gold),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = ArgosColors.Gold),
+    ) { Text(stringResource(R.string.save_photo), style = ArgosType.Strong) }
+    if (saved == false) {
+        Text(stringResource(R.string.photo_save_failed), style = ArgosType.Small, color = ArgosColors.Critical)
+    }
 }
 
 private fun decodeUpright(file: java.io.File): Bitmap? = runCatching {

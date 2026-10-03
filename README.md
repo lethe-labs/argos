@@ -58,7 +58,8 @@ notification. If a SIM card is pulled out, it takes one front photo with no
 preview. The photo stays in Argos's private storage, its hash goes into the
 journal, and it appears in the report next to the removal. A deleted or
 replaced photo is reported. Photos from one absence are erased when the
-next one starts.
+next one starts, unless you save one to the gallery from the report (album
+*Argos*) to keep it as evidence; that copy is outside Argos's protection.
 
 Taking someone's picture without their knowledge in a private place can be
 an offence (in France, article 226-1 of the Code pénal). Use it on your own
