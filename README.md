@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="fastlane/metadata/android/en-US/images/icon.png" width="128" alt="Argos icon">
+</p>
+
 # Argos
 
 **Find out whether your phone was touched while you were away.**
