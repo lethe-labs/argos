@@ -12,8 +12,11 @@ confiscated for a few hours: when you get it back, Argos tells you what
 happened to it in the meantime — and whether its own records were tampered
 with.
 
-> **Status: pre-alpha.** The core logic is unit-tested, but the app has not yet
-> been validated on real devices. Do not rely on it yet.
+> **Status: pre-alpha.** The core logic is unit-tested. On a real device,
+> Argos has so far been tested on a **recent Google Pixel running Android 17**:
+> failed unlocks, a SIM card removed and put back, and apps opened while away
+> were all detected. The other checks have not yet been tried on a device,
+> nor has any other phone. Do not rely on it yet.
 
 Argos never locks, wipes or modifies your device. It only observes. It is a
 sibling project of [Oblivion](https://github.com/lethe-labs/oblivion-v2), which
