@@ -1,7 +1,13 @@
 package io.github.lethe_labs.argos.ui
 
+import android.Manifest
 import android.app.admin.DevicePolicyManager
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Matrix
+import android.media.ExifInterface
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.annotation.StringRes
 import androidx.activity.result.contract.ActivityResultContracts
@@ -13,6 +19,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -26,6 +33,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -37,6 +45,8 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -45,6 +55,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -53,6 +66,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import io.github.lethe_labs.argos.ArgosApp
 import io.github.lethe_labs.argos.R
 import io.github.lethe_labs.argos.core.report.IntegrityReport
 import io.github.lethe_labs.argos.core.report.SealStatus
@@ -84,6 +98,13 @@ fun ArgosScreen(vm: ArgosViewModel = viewModel()) {
         ActivityResultContracts.StartActivityForResult(),
     ) { vm.refresh() }
     val eyes = Eyes(activateAdmin, grantUsage = { usageLauncher.launch(UsageReader.settingsIntent()) })
+    val cameraLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted -> if (granted) vm.setSimPhoto(true) }
+    val setSimPhoto: (Boolean) -> Unit = { on ->
+        val granted = context.checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+        if (on && !granted) cameraLauncher.launch(Manifest.permission.CAMERA) else vm.setSimPhoto(on)
+    }
 
     // The Surface sets the default text colour: without it, text with no
     // explicit colour falls back to black, invisible on the night blue.
@@ -98,7 +119,7 @@ fun ArgosScreen(vm: ArgosViewModel = viewModel()) {
             Box(Modifier.weight(1f)) {
                 when (val s = state) {
                     UiState.Loading -> CircularProgressIndicator(Modifier.align(Alignment.Center), color = ArgosColors.Watch)
-                    is UiState.Idle -> RestContent(s.adminActive, s.usageAccess, eyes, vm::depart, vm::reportMissingDeparture)
+                    is UiState.Idle -> RestContent(s, eyes, setSimPhoto, vm::depart, vm::reportMissingDeparture)
                     is UiState.WordsShown -> WordsContent(s.words, vm::wordsNoted)
                     is UiState.Away -> AwayContent(s, eyes, vm::startReturn)
                     is UiState.Confirming -> ConfirmContent(s, vm::confirmDeparture)
@@ -136,9 +157,9 @@ private fun Screen(actions: @Composable ColumnScope.() -> Unit, content: @Compos
 
 @Composable
 private fun RestContent(
-    adminActive: Boolean,
-    usageAccess: Boolean,
+    state: UiState.Idle,
     eyes: Eyes,
+    onSimPhoto: (Boolean) -> Unit,
     onDepart: () -> Unit,
     onMissingDeparture: () -> Unit,
 ) = Screen(
@@ -163,7 +184,12 @@ private fun RestContent(
             style = ArgosType.Body, color = ArgosColors.Muted, textAlign = TextAlign.Center,
         )
     }
-    if (adminActive && usageAccess) ReadyPill() else BlindCards(adminActive, usageAccess, eyes)
+    if (state.adminActive && state.usageAccess) {
+        ReadyPill()
+    } else {
+        BlindCards(state.adminActive, state.usageAccess, eyes)
+    }
+    SimPhotoOption(state.simPhoto, onSimPhoto)
 }
 
 @Composable
@@ -224,6 +250,9 @@ private fun AwayContent(state: UiState.Away, eyes: Eyes, onBack: () -> Unit) = S
         stringResource(R.string.eyes_open_count, Watcher.entries.size - blind.size, Watcher.entries.size),
         style = ArgosType.Small, color = ArgosColors.Muted,
     )
+    if (state.simPhoto) {
+        Text(stringResource(R.string.sim_photo_armed), style = ArgosType.Small, color = ArgosColors.Muted)
+    }
 }
 
 @Composable
@@ -343,7 +372,7 @@ private fun ReportContent(report: IntegrityReport, onDone: () -> Unit) = Screen(
 
 // ---- Report model for display ----
 
-private class Sighting(val color: Color, val lines: List<String>)
+private class Sighting(val color: Color, val lines: List<String>, val photos: List<String> = emptyList())
 
 /** What each eye saw, in emblem order. Eyes that saw nothing are absent. */
 @Composable
@@ -357,7 +386,8 @@ private fun sightings(report: IntegrityReport): Map<Watcher, Sighting> {
         } else {
             val seen = byWatcher[watcher] ?: return@forEach
             val worst = seen.maxOf { it.severity }
-            out[watcher] = Sighting(severityColor(worst), seen.map { describe(it) })
+            val photos = seen.filter { it.kind == Anomaly.Kind.SIM_PHOTO }.map { it.detail.substringBefore('|') }
+            out[watcher] = Sighting(severityColor(worst), seen.map { describe(it) }, photos)
         }
     }
     return out
@@ -478,6 +508,67 @@ private fun SightingCard(watcher: Watcher, sighting: Sighting) {
                 sighting.lines.forEach { Text(it, style = ArgosType.Small, color = ArgosColors.Muted) }
             }
         }
+        sighting.photos.forEach { CapturedPhoto(it) }
+    }
+}
+
+/** A front photo from the absence, upright, scaled down for the screen. */
+@Composable
+private fun CapturedPhoto(name: String) {
+    val context = LocalContext.current
+    val bitmap = remember(name) {
+        ArgosApp.container(context).captures.file(name)?.let { decodeUpright(it) }
+    } ?: return
+    Image(
+        bitmap = bitmap.asImageBitmap(),
+        contentDescription = stringResource(R.string.sim_photo_description),
+        contentScale = ContentScale.Fit,
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(max = 360.dp)
+            .clip(RoundedCornerShape(10.dp)),
+    )
+}
+
+private fun decodeUpright(file: java.io.File): Bitmap? = runCatching {
+    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    BitmapFactory.decodeFile(file.path, bounds)
+    var sample = 1
+    while (bounds.outWidth / (sample * 2) >= 900 && bounds.outHeight / (sample * 2) >= 900) sample *= 2
+    val bitmap = BitmapFactory.decodeFile(file.path, BitmapFactory.Options().apply { inSampleSize = sample })
+        ?: return null
+    // The camera may rotate the pixels or only tag the rotation in EXIF.
+    val degrees = when (ExifInterface(file.path).getAttributeInt(ExifInterface.TAG_ORIENTATION, 0)) {
+        ExifInterface.ORIENTATION_ROTATE_90 -> 90f
+        ExifInterface.ORIENTATION_ROTATE_180 -> 180f
+        ExifInterface.ORIENTATION_ROTATE_270 -> 270f
+        else -> 0f
+    }
+    if (degrees == 0f) bitmap
+    else Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, Matrix().apply { postRotate(degrees) }, true)
+}.getOrNull()
+
+@Composable
+private fun SimPhotoOption(enabled: Boolean, onChange: (Boolean) -> Unit) {
+    Card(ArgosColors.Line) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            WatcherIcon(Watcher.SIM, if (enabled) ArgosColors.Watch else ArgosColors.Muted)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(stringResource(R.string.sim_photo_title), style = ArgosType.Strong)
+                Text(stringResource(R.string.sim_photo_body), style = ArgosType.Small, color = ArgosColors.Muted)
+            }
+            Switch(
+                checked = enabled,
+                onCheckedChange = onChange,
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = ArgosColors.OnGold,
+                    checkedTrackColor = ArgosColors.Gold,
+                    uncheckedThumbColor = ArgosColors.Muted,
+                    uncheckedTrackColor = ArgosColors.Night,
+                    uncheckedBorderColor = ArgosColors.Line,
+                ),
+            )
+        }
     }
 }
 
@@ -523,6 +614,9 @@ private fun describe(a: Anomaly): String = when (a.kind) {
     } ?: a.detail
     Anomaly.Kind.USAGE_ACCESS_REVOKED -> stringResource(R.string.anomaly_usage_revoked)
     Anomaly.Kind.USAGE_ACCESS_MISSING -> stringResource(R.string.anomaly_usage_missing)
+    Anomaly.Kind.SIM_PHOTO -> stringResource(R.string.anomaly_sim_photo, formatTime(a.detail.substringAfter('|')))
+    Anomaly.Kind.SIM_PHOTO_FAILED -> stringResource(R.string.anomaly_sim_photo_failed, formatTime(a.detail))
+    Anomaly.Kind.PHOTO_TAMPERED -> stringResource(R.string.anomaly_photo_tampered)
 }
 
 /** The name shown under the app's icon, or its package if it is gone. */

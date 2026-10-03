@@ -88,6 +88,15 @@
     <string name="duration_minutes">%1$d min</string>
     <string name="eye_gaze">Gaze</string>
     <string name="eye_gaze_role">Apps opened</string>
+    <string name="sim_photo_title">Photo if the SIM is pulled out</string>
+    <string name="sim_photo_body">Argos takes a front photo when a SIM card is removed while you are away. A notification shows while it watches.</string>
+    <string name="sim_photo_armed">Front photo armed if the SIM is pulled out</string>
+    <string name="sim_photo_description">Front photo taken when the SIM was pulled out</string>
+    <string name="anomaly_sim_photo">Front photo taken at %1$s</string>
+    <string name="anomaly_sim_photo_failed">The front photo could not be taken at %1$s</string>
+    <string name="anomaly_photo_tampered">A front photo was deleted or replaced</string>
+    <string name="watch_channel">Absence</string>
+    <string name="watch_notification">Argos is watching</string>
     <plurals name="eyes_saw">
         <item quantity="one">%1$d eye saw something</item>
         <item quantity="other">%1$d eyes saw something</item>

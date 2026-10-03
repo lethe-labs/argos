@@ -47,7 +47,23 @@ acts; Argos tells you whether you need to.
 | New accessibility services or device admins | Diff of system settings — the usual signature of stalkerware |
 | USB debugging or developer options switched on | System settings |
 | Clock changed | Wall clock compared with the monotonic system clock |
+| Optional: a front photo of whoever pulls the SIM card out | Front camera, from a service that runs only while you are away |
 | SIM removed or inserted, even if put back before you return | SIM changes logged as they happen, plus the operator code |
+
+## The SIM photo
+
+Off by default. When you turn it on, Argos asks for the camera and, from
+*I'm leaving*, keeps a service running with an "Argos is watching"
+notification. If a SIM card is pulled out, it takes one front photo with no
+preview. The photo stays in Argos's private storage, its hash goes into the
+journal, and it appears in the report next to the removal. A deleted or
+replaced photo is reported. Photos from one absence are erased when the
+next one starts.
+
+Taking someone's picture without their knowledge in a private place can be
+an offence (in France, article 226-1 of the Code pénal). Use it on your own
+phone against an intruder, and think twice if someone else may use it
+legitimately.
 
 ## How the evidence is protected
 
@@ -87,6 +103,10 @@ Read this before trusting a *clean* verdict.
   opened at 15:44 for two minutes, not which photos. Android also only keeps
   this history for a few days, so the start of a longer absence is lost.
   Apps you open after your own unlock on return are marked *probably you*.
+- **A front photo after a reboot**: Android does not let a camera service
+  start at boot, so the SIM photo only works until the phone is restarted.
+  The restart itself is reported. The photo also depends on light and angle,
+  and Android shows its green camera dot while it is taken.
 - **Which exact SIM card** is inserted: since Android 10, the SIM identifier is
   reserved to the system. Only removal and operator changes are visible.
 
@@ -105,6 +125,7 @@ reports.
 | Device admin, `watch-login` policy only | To be told about unlock attempts. It cannot lock or wipe the device. |
 | Usage access (`PACKAGE_USAGE_STATS`), granted in the system settings | To see which apps were opened while you were away. Turning it off while you are away is reported. |
 | `QUERY_ALL_PACKAGES` | To see which apps appeared while you were away |
+| `CAMERA`, `FOREGROUND_SERVICE_CAMERA` | Only if you turn on the SIM photo. Off by default. |
 | `RECEIVE_BOOT_COMPLETED` | To log reboots |
 
 There is **no `INTERNET` permission**: Argos cannot open a network connection,

@@ -87,6 +87,15 @@
     <string name="duration_minutes">%1$d min</string>
     <string name="eye_gaze">Regard</string>
     <string name="eye_gaze_role">Apps ouvertes</string>
+    <string name="sim_photo_title">Photo si la SIM est retirée</string>
+    <string name="sim_photo_body">Argos prend une photo frontale si une carte SIM est retirée pendant ton absence. Une notification reste affichée pendant la veille.</string>
+    <string name="sim_photo_armed">Photo frontale armée si la SIM est retirée</string>
+    <string name="sim_photo_description">Photo frontale prise au retrait de la SIM</string>
+    <string name="anomaly_sim_photo">Photo frontale prise le %1$s</string>
+    <string name="anomaly_sim_photo_failed">La photo frontale n\'a pas pu être prise le %1$s</string>
+    <string name="anomaly_photo_tampered">Une photo frontale a été supprimée ou remplacée</string>
+    <string name="watch_channel">Absence</string>
+    <string name="watch_notification">Argos veille</string>
     <plurals name="eyes_saw">
         <item quantity="one">%1$d œil a vu quelque chose</item>
         <item quantity="many">%1$d yeux ont vu quelque chose</item>

@@ -25,5 +25,8 @@ data class Anomaly(
         APP_OPENED,
         USAGE_ACCESS_REVOKED,
         USAGE_ACCESS_MISSING,
+        SIM_PHOTO,
+        SIM_PHOTO_FAILED,
+        PHOTO_TAMPERED,
     }
 }

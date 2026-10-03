@@ -22,6 +22,8 @@ object ReportBuilder {
      * @param journal the journal, or null if it could not be read at all.
      * @param appVisits apps opened between departure and return, or null if
      *        the usage history could not be read.
+     * @param photos the photos on disk, file name to SHA-256, checked against
+     *        the hashes the journal recorded when they were taken.
      */
     fun build(
         departure: Departure?,
@@ -30,6 +32,7 @@ object ReportBuilder {
         now: DeviceSnapshot,
         journal: List<JournalEntry>?,
         appVisits: List<AppVisit>?,
+        photos: Map<String, String>,
     ): IntegrityReport {
         val journalIntact = journal != null && HashChain.verify(journal) == HashChain.Verification.Intact
 
@@ -53,7 +56,8 @@ object ReportBuilder {
         val anomalies = SnapshotDiff.compare(departure.snapshot, now) +
             journalAnomalies(eventsWhileAway) +
             simAnomalies(simBaseline, eventsWhileAway) +
-            visitAnomalies(departure, now, appVisits, eventsWhileAway)
+            visitAnomalies(departure, now, appVisits, eventsWhileAway) +
+            photoAnomalies(eventsWhileAway, photos)
 
         return IntegrityReport(
             sealStatus = sealStatus,
@@ -115,6 +119,27 @@ object ReportBuilder {
         events.filter { it.type == JournalEventType.SIM_STATE }.forEach { replay(it, report = true) }
         return out
     }
+
+    /**
+     * Front photos taken when the SIM was pulled out. A photo whose file is
+     * gone or no longer matches its recorded hash was deleted or replaced.
+     */
+    private fun photoAnomalies(events: List<JournalEntry>, photos: Map<String, String>): List<Anomaly> =
+        events.mapNotNull { e ->
+            when (e.type) {
+                JournalEventType.PHOTO_TAKEN -> {
+                    val name = e.detail.substringBefore('|')
+                    val hash = e.detail.substringAfter('|', missingDelimiterValue = "")
+                    if (hash.isNotEmpty() && photos[name] == hash) {
+                        Anomaly(Kind.SIM_PHOTO, Severity.INFO, "$name|${e.timestampMs}")
+                    } else {
+                        Anomaly(Kind.PHOTO_TAMPERED, Severity.CRITICAL, name)
+                    }
+                }
+                JournalEventType.PHOTO_FAILED -> Anomaly(Kind.SIM_PHOTO_FAILED, Severity.INFO, e.timestampMs.toString())
+                else -> null
+            }
+        }
 
     /**
      * Apps opened while away. Those opened after the last successful unlock

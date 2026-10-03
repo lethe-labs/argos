@@ -22,6 +22,21 @@
       that appears while you were away is the classic sign of planted spyware.
       Restricted on Google Play; accepted on F-Droid.
     -->
+    <!--
+      Optional, off by default: a front photo when the SIM card is pulled out
+      while you are away. The camera is only reachable from a foreground
+      service of type camera, started when you tap "I'm leaving".
+    -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.camera.front"
+        android:required="false" />
+
     <uses-permission
         android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="QueryAllPackagesPermission" />
@@ -91,5 +106,10 @@
                 <action android:name="android.intent.action.SIM_STATE_CHANGED" />
             </intent-filter>
         </receiver>
+
+        <service
+            android:name=".platform.WatchService"
+            android:exported="false"
+            android:foregroundServiceType="camera" />
     </application>
 </manifest>

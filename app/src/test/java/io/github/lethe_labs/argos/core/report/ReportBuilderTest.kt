@@ -41,7 +41,8 @@ class ReportBuilderTest {
         dep: Departure? = departure,
         now: io.github.lethe_labs.argos.core.snapshot.DeviceSnapshot = nowSnapshot,
         visits: List<AppVisit>? = emptyList(),
-    ) = ReportBuilder.build(dep, keyPresent, confirmed, now, journal, visits)
+        photos: Map<String, String> = emptyMap(),
+    ) = ReportBuilder.build(dep, keyPresent, confirmed, now, journal, visits, photos)
 
     @Test
     fun `untouched phone confirmed by its owner is clean`() {
@@ -200,5 +201,28 @@ class ReportBuilderTest {
         val r = report(now = nowSnapshot.copy(usageAccessGranted = false), visits = null)
         assertEquals(Kind.USAGE_ACCESS_REVOKED, r.anomalies.single().kind)
         assertEquals(Severity.CRITICAL, r.anomalies.single().severity)
+    }
+
+    @Test
+    fun `a photo still matching its recorded hash is shown`() {
+        val journal = append(journalAtDeparture, JournalEventType.PHOTO_TAKEN, 10L, "p1.jpg|abc")
+        val r = report(journal = journal, photos = mapOf("p1.jpg" to "abc"))
+        assertEquals(Kind.SIM_PHOTO, r.anomalies.single().kind)
+        assertEquals("p1.jpg|10", r.anomalies.single().detail)
+    }
+
+    @Test
+    fun `a deleted or replaced photo is critical`() {
+        val journal = append(journalAtDeparture, JournalEventType.PHOTO_TAKEN, 10L, "p1.jpg|abc")
+        assertEquals(Kind.PHOTO_TAMPERED, report(journal = journal, photos = emptyMap()).anomalies.single().kind)
+        val swapped = report(journal = journal, photos = mapOf("p1.jpg" to "other"))
+        assertEquals(Severity.CRITICAL, swapped.anomalies.single().severity)
+    }
+
+    @Test
+    fun `a photo that could not be taken is noted`() {
+        val r = report(journal = append(journalAtDeparture, JournalEventType.PHOTO_FAILED, 10L))
+        assertEquals(Kind.SIM_PHOTO_FAILED, r.anomalies.single().kind)
+        assertEquals(IntegrityReport.Verdict.CLEAN, r.verdict)
     }
 }

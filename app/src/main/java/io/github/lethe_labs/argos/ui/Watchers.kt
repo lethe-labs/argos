@@ -53,7 +53,8 @@ enum class Watcher(@StringRes val label: Int, @StringRes val role: Int, val icon
             Kind.UNLOCK_FAILED, Kind.UNLOCK_SUCCEEDED, Kind.ADMIN_DISABLED -> LOCK
             Kind.APP_OPENED, Kind.USAGE_ACCESS_REVOKED, Kind.USAGE_ACCESS_MISSING -> GAZE
             Kind.REBOOTED -> WAKE
-            Kind.SIM_CHANGED, Kind.SIM_REMOVED, Kind.SIM_INSERTED -> SIM
+            Kind.SIM_CHANGED, Kind.SIM_REMOVED, Kind.SIM_INSERTED,
+            Kind.SIM_PHOTO, Kind.SIM_PHOTO_FAILED, Kind.PHOTO_TAMPERED -> SIM
             Kind.APP_INSTALLED, Kind.APP_REMOVED -> APPS
             Kind.CLOCK_CHANGED -> CLOCK
             Kind.ADB_ENABLED, Kind.DEVELOPER_OPTIONS_ENABLED -> CABLE

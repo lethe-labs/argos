@@ -40,7 +40,7 @@ class SimReceiver : BroadcastReceiver() {
         }
 
         @Suppress("DEPRECATION")
-        private fun readSlots(context: Context): List<String>? = runCatching {
+        fun readSlots(context: Context): List<String>? = runCatching {
             val tm = context.getSystemService(TelephonyManager::class.java) ?: return null
             val slots = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) tm.activeModemCount else tm.phoneCount
             (0 until slots.coerceAtLeast(1)).map { slot ->

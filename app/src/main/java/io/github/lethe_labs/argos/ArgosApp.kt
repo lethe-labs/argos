@@ -2,9 +2,11 @@ package io.github.lethe_labs.argos
 
 import android.app.Application
 import android.content.Context
+import io.github.lethe_labs.argos.platform.CaptureStore
 import io.github.lethe_labs.argos.platform.JournalStore
 import io.github.lethe_labs.argos.platform.SealKeyProvider
 import io.github.lethe_labs.argos.platform.SessionStore
+import io.github.lethe_labs.argos.platform.SettingsStore
 
 class ArgosApp : Application() {
     val container: AppContainer by lazy { AppContainer(this) }
@@ -24,6 +26,8 @@ class AppContainer(app: Application) {
     // Lazy because it lives in credential-encrypted storage, which does not
     // exist yet when the receivers run before the first unlock.
     val sessions: SessionStore by lazy { SessionStore(app) }
+    val settings: SettingsStore by lazy { SettingsStore(app) }
+    val captures: CaptureStore by lazy { CaptureStore(app) }
 
     val sealKeys = SealKeyProvider()
 }

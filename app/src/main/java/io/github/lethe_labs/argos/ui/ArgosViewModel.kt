@@ -1,7 +1,9 @@
 package io.github.lethe_labs.argos.ui
 
+import android.Manifest
 import android.app.Application
 import android.app.admin.DevicePolicyManager
+import android.content.pm.PackageManager
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.lethe_labs.argos.ArgosApp
@@ -16,6 +18,7 @@ import io.github.lethe_labs.argos.platform.ArgosAdminReceiver
 import io.github.lethe_labs.argos.platform.SimReceiver
 import io.github.lethe_labs.argos.platform.SnapshotCollector
 import io.github.lethe_labs.argos.platform.UsageReader
+import io.github.lethe_labs.argos.platform.WatchService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,9 +29,14 @@ import java.util.UUID
 
 sealed interface UiState {
     data object Loading : UiState
-    data class Idle(val adminActive: Boolean, val usageAccess: Boolean) : UiState
+    data class Idle(val adminActive: Boolean, val usageAccess: Boolean, val simPhoto: Boolean) : UiState
     data class WordsShown(val words: List<String>) : UiState
-    data class Away(val departedAtMs: Long, val adminActive: Boolean, val usageAccess: Boolean) : UiState
+    data class Away(
+        val departedAtMs: Long,
+        val adminActive: Boolean,
+        val usageAccess: Boolean,
+        val simPhoto: Boolean,
+    ) : UiState
     data class Confirming(val departedAtMs: Long, val words: List<String>) : UiState
     data class ReportShown(val report: IntegrityReport) : UiState
     data class Failed(val message: String) : UiState
@@ -49,10 +57,20 @@ class ArgosViewModel(app: Application) : AndroidViewModel(app) {
             val departure = container.sessions.load()
             val usageAccess = UsageReader.hasAccess(getApplication())
             _state.value = if (departure == null) {
-                UiState.Idle(isAdminActive(), usageAccess)
+                // No absence, so nothing to watch: covers an app reset while away too.
+                WatchService.stop(getApplication())
+                UiState.Idle(isAdminActive(), usageAccess, simPhotoArmed())
             } else {
-                UiState.Away(departure.departedAtMs, isAdminActive(), usageAccess)
+                UiState.Away(departure.departedAtMs, isAdminActive(), usageAccess, simPhotoArmed())
             }
+        }
+    }
+
+    /** Called only once the camera permission is granted when turning it on. */
+    fun setSimPhoto(enabled: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            container.settings.simPhoto = enabled
+            refresh()
         }
     }
 
@@ -77,6 +95,10 @@ class ArgosViewModel(app: Application) : AndroidViewModel(app) {
         )
         val words = sealWords(departure) ?: error("seal key unavailable")
         container.sessions.save(departure)
+        container.captures.clear()
+        // Started now, while Argos is on screen: Android refuses the camera
+        // to a service started from the background.
+        if (simPhotoArmed()) WatchService.start(getApplication())
         _state.value = UiState.WordsShown(words)
     }
 
@@ -113,6 +135,7 @@ class ArgosViewModel(app: Application) : AndroidViewModel(app) {
                 AppVisits.from(events, d.departedAtMs, now.takenAtWallMs, UsageReader.ignoredPackages(app))
             }
         }
+        WatchService.stop(app)
         val report = ReportBuilder.build(
             departure = departure,
             sealKeyPresent = sealKeyPresent,
@@ -120,6 +143,7 @@ class ArgosViewModel(app: Application) : AndroidViewModel(app) {
             now = now,
             journal = container.journal.readAll(),
             appVisits = visits,
+            photos = container.captures.hashes(),
         )
         container.journal.append(JournalEventType.RETURN)
         container.sessions.clear()
@@ -132,6 +156,9 @@ class ArgosViewModel(app: Application) : AndroidViewModel(app) {
             container.sealKeys.hmacOrNull(data) ?: error("seal key missing")
         }
     }.getOrNull()
+
+    private fun simPhotoArmed(): Boolean = container.settings.simPhoto &&
+        getApplication<Application>().checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
 
     private fun isAdminActive(): Boolean {
         val app = getApplication<Application>()
