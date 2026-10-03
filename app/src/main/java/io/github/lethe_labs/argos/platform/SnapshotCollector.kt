@@ -31,6 +31,7 @@ object SnapshotCollector {
             deviceAdmins = deviceAdmins(context),
             simState = runCatching { telephony?.simState }.getOrNull(),
             simOperator = runCatching { telephony?.simOperator }.getOrNull()?.takeIf { it.isNotEmpty() },
+            usageAccessGranted = UsageReader.hasAccess(context),
         )
     }
 

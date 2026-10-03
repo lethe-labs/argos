@@ -11,9 +11,11 @@ import io.github.lethe_labs.argos.core.report.IntegrityReport
 import io.github.lethe_labs.argos.core.report.ReportBuilder
 import io.github.lethe_labs.argos.core.seal.SealWords
 import io.github.lethe_labs.argos.core.seal.WordLists
+import io.github.lethe_labs.argos.core.usage.AppVisits
 import io.github.lethe_labs.argos.platform.ArgosAdminReceiver
 import io.github.lethe_labs.argos.platform.SimReceiver
 import io.github.lethe_labs.argos.platform.SnapshotCollector
+import io.github.lethe_labs.argos.platform.UsageReader
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,9 +26,9 @@ import java.util.UUID
 
 sealed interface UiState {
     data object Loading : UiState
-    data class Idle(val adminActive: Boolean) : UiState
+    data class Idle(val adminActive: Boolean, val usageAccess: Boolean) : UiState
     data class WordsShown(val words: List<String>) : UiState
-    data class Away(val departedAtMs: Long, val adminActive: Boolean) : UiState
+    data class Away(val departedAtMs: Long, val adminActive: Boolean, val usageAccess: Boolean) : UiState
     data class Confirming(val departedAtMs: Long, val words: List<String>) : UiState
     data class ReportShown(val report: IntegrityReport) : UiState
     data class Failed(val message: String) : UiState
@@ -45,10 +47,11 @@ class ArgosViewModel(app: Application) : AndroidViewModel(app) {
     fun refresh() {
         viewModelScope.launch(Dispatchers.IO) {
             val departure = container.sessions.load()
+            val usageAccess = UsageReader.hasAccess(getApplication())
             _state.value = if (departure == null) {
-                UiState.Idle(isAdminActive())
+                UiState.Idle(isAdminActive(), usageAccess)
             } else {
-                UiState.Away(departure.departedAtMs, isAdminActive())
+                UiState.Away(departure.departedAtMs, isAdminActive(), usageAccess)
             }
         }
     }
@@ -102,12 +105,21 @@ class ArgosViewModel(app: Application) : AndroidViewModel(app) {
     fun closeReport() = refresh()
 
     private fun finishReturn(departure: Departure?, sealKeyPresent: Boolean, confirmed: Boolean) {
+        val app = getApplication<Application>()
+        val now = SnapshotCollector.collect(app)
+        // Stops at the return itself: what the user opens afterwards is theirs.
+        val visits = departure?.let { d ->
+            UsageReader.events(app, d.departedAtMs, now.takenAtWallMs)?.let { events ->
+                AppVisits.from(events, d.departedAtMs, now.takenAtWallMs, UsageReader.ignoredPackages(app))
+            }
+        }
         val report = ReportBuilder.build(
             departure = departure,
             sealKeyPresent = sealKeyPresent,
             departureConfirmed = confirmed,
-            now = SnapshotCollector.collect(getApplication()),
+            now = now,
             journal = container.journal.readAll(),
+            appVisits = visits,
         )
         container.journal.append(JournalEventType.RETURN)
         container.sessions.clear()

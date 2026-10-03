@@ -22,5 +22,8 @@ data class Anomaly(
         UNLOCK_FAILED,
         UNLOCK_SUCCEEDED,
         ADMIN_DISABLED,
+        APP_OPENED,
+        USAGE_ACCESS_REVOKED,
+        USAGE_ACCESS_MISSING,
     }
 }

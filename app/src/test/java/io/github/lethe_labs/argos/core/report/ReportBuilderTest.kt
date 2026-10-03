@@ -9,6 +9,7 @@ import io.github.lethe_labs.argos.core.later
 import io.github.lethe_labs.argos.core.seal.WordLists
 import io.github.lethe_labs.argos.core.snapshot.Anomaly.Kind
 import io.github.lethe_labs.argos.core.snapshot.Severity
+import io.github.lethe_labs.argos.core.usage.AppVisit
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Test
@@ -39,7 +40,8 @@ class ReportBuilderTest {
         confirmed: Boolean = true,
         dep: Departure? = departure,
         now: io.github.lethe_labs.argos.core.snapshot.DeviceSnapshot = nowSnapshot,
-    ) = ReportBuilder.build(dep, keyPresent, confirmed, now, journal)
+        visits: List<AppVisit>? = emptyList(),
+    ) = ReportBuilder.build(dep, keyPresent, confirmed, now, journal, visits)
 
     @Test
     fun `untouched phone confirmed by its owner is clean`() {
@@ -165,5 +167,38 @@ class ReportBuilderTest {
     fun `a removal is caught even without a baseline before departure`() {
         val journal = sim(sim(journalAtDeparture, 10L, SimSlots.PRESENT), 20L, SimSlots.ABSENT)
         assertEquals(Kind.SIM_REMOVED, report(journal = journal).anomalies.single().kind)
+    }
+
+    @Test
+    fun `an app opened while away is suspicious`() {
+        val r = report(visits = listOf(AppVisit("com.example.gallery", 100L, 200L)))
+        assertEquals(Kind.APP_OPENED, r.anomalies.single().kind)
+        assertEquals(IntegrityReport.Verdict.SUSPICIOUS, r.verdict)
+    }
+
+    @Test
+    fun `apps opened after the last unlock are probably the user's own`() {
+        val journal = append(append(journalAtDeparture, JournalEventType.UNLOCK_SUCCEEDED, 50L), JournalEventType.UNLOCK_SUCCEEDED, 500L)
+        val r = report(
+            journal = journal,
+            visits = listOf(AppVisit("com.example.gallery", 100L, 200L), AppVisit("com.example.mail", 600L, 700L)),
+        )
+        val severities = r.anomalies.filter { it.kind == Kind.APP_OPENED }.associate { it.detail.substringBefore('|') to it.severity }
+        assertEquals(Severity.WARNING, severities["com.example.gallery"])
+        assertEquals(Severity.INFO, severities["com.example.mail"])
+    }
+
+    @Test
+    fun `an unreadable usage history is noted without raising the verdict`() {
+        val r = report(dep = departure.copy(snapshot = beforeSnapshot.copy(usageAccessGranted = false)), visits = null)
+        assertEquals(Kind.USAGE_ACCESS_MISSING, r.anomalies.single().kind)
+        assertEquals(IntegrityReport.Verdict.CLEAN, r.verdict)
+    }
+
+    @Test
+    fun `usage access turned off while away is critical`() {
+        val r = report(now = nowSnapshot.copy(usageAccessGranted = false), visits = null)
+        assertEquals(Kind.USAGE_ACCESS_REVOKED, r.anomalies.single().kind)
+        assertEquals(Severity.CRITICAL, r.anomalies.single().severity)
     }
 }

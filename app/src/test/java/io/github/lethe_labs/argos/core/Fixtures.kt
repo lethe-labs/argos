@@ -13,6 +13,7 @@ internal fun deviceSnapshot(
     admins: Set<String> = setOf("io.github.lethe_labs.argos/.platform.ArgosAdminReceiver"),
     simState: Int? = 5,
     simOperator: String? = "20801",
+    usageAccess: Boolean? = true,
 ) = DeviceSnapshot(
     takenAtWallMs = wall,
     takenAtElapsedMs = elapsed,
@@ -24,6 +25,7 @@ internal fun deviceSnapshot(
     deviceAdmins = admins,
     simState = simState,
     simOperator = simOperator,
+    usageAccessGranted = usageAccess,
 )
 
 /** Same instant later in the same boot: wall and monotonic clocks advance together. */

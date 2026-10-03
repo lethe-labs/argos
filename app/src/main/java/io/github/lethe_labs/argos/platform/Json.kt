@@ -53,6 +53,7 @@ internal object Json {
         .put("admins", JSONArray(s.deviceAdmins.sorted()))
         .put("simState", s.simState ?: JSONObject.NULL)
         .put("simOperator", s.simOperator ?: JSONObject.NULL)
+        .put("usageAccess", s.usageAccessGranted ?: JSONObject.NULL)
 
     private fun snapshotFromJson(o: JSONObject): DeviceSnapshot = DeviceSnapshot(
         takenAtWallMs = o.getLong("wall"),
@@ -65,6 +66,8 @@ internal object Json {
         deviceAdmins = o.getJSONArray("admins").toStringSet(),
         simState = o.optIntOrNull("simState"),
         simOperator = if (o.isNull("simOperator")) null else o.getString("simOperator"),
+        // Absent from departures stored by earlier versions; isNull covers it.
+        usageAccessGranted = o.optBooleanOrNull("usageAccess"),
     )
 
     private fun JSONObject.optIntOrNull(key: String): Int? = if (isNull(key)) null else getInt(key)

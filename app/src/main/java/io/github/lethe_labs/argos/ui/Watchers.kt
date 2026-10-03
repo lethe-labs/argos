@@ -5,7 +5,7 @@ import io.github.lethe_labs.argos.R
 import io.github.lethe_labs.argos.core.snapshot.Anomaly.Kind
 
 /**
- * The eight eyes of Argos, clockwise from the top of the emblem. Each one
+ * The eyes of Argos, clockwise from the top of the emblem. Each one
  * watches one family of signals, so a report reads as "the SIM eye saw
  * something" rather than as a flat list.
  *
@@ -15,6 +15,13 @@ enum class Watcher(@StringRes val label: Int, @StringRes val role: Int, val icon
     LOCK(
         R.string.eye_lock, R.string.eye_lock_role,
         "M7 11h10a2 2 0 0 1 2 2v6a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-6a2 2 0 0 1 2 -2z M8 11V8a4 4 0 0 1 8 0v3",
+    ),
+    GAZE(
+        R.string.eye_gaze, R.string.eye_gaze_role,
+        "M5 4h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1v-4a1 1 0 0 1 1 -1z " +
+            "M15 4h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1v-4a1 1 0 0 1 1 -1z " +
+            "M5 14h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1v-4a1 1 0 0 1 1 -1z " +
+            "M14 17a3 3 0 1 0 6 0a3 3 0 1 0 -6 0",
     ),
     WAKE(R.string.eye_wake, R.string.eye_wake_role, "M12 3v8 M6.3 7.5a8 8 0 1 0 11.4 0"),
     SIM(
@@ -44,6 +51,7 @@ enum class Watcher(@StringRes val label: Int, @StringRes val role: Int, val icon
     companion object {
         fun of(kind: Kind): Watcher = when (kind) {
             Kind.UNLOCK_FAILED, Kind.UNLOCK_SUCCEEDED, Kind.ADMIN_DISABLED -> LOCK
+            Kind.APP_OPENED, Kind.USAGE_ACCESS_REVOKED, Kind.USAGE_ACCESS_MISSING -> GAZE
             Kind.REBOOTED -> WAKE
             Kind.SIM_CHANGED, Kind.SIM_REMOVED, Kind.SIM_INSERTED -> SIM
             Kind.APP_INSTALLED, Kind.APP_REMOVED -> APPS

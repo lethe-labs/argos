@@ -9,6 +9,8 @@ import io.github.lethe_labs.argos.core.snapshot.Anomaly.Kind
 import io.github.lethe_labs.argos.core.snapshot.DeviceSnapshot
 import io.github.lethe_labs.argos.core.snapshot.Severity
 import io.github.lethe_labs.argos.core.snapshot.SnapshotDiff
+import io.github.lethe_labs.argos.core.usage.AppVisit
+import io.github.lethe_labs.argos.core.usage.AppVisits
 
 object ReportBuilder {
 
@@ -18,6 +20,8 @@ object ReportBuilder {
      * @param departureConfirmed whether the user recognised the words and the
      *        departure time shown to them.
      * @param journal the journal, or null if it could not be read at all.
+     * @param appVisits apps opened between departure and return, or null if
+     *        the usage history could not be read.
      */
     fun build(
         departure: Departure?,
@@ -25,6 +29,7 @@ object ReportBuilder {
         departureConfirmed: Boolean,
         now: DeviceSnapshot,
         journal: List<JournalEntry>?,
+        appVisits: List<AppVisit>?,
     ): IntegrityReport {
         val journalIntact = journal != null && HashChain.verify(journal) == HashChain.Verification.Intact
 
@@ -47,7 +52,8 @@ object ReportBuilder {
         val simBaseline = eventsBefore.lastOrNull { it.type == JournalEventType.SIM_STATE }
         val anomalies = SnapshotDiff.compare(departure.snapshot, now) +
             journalAnomalies(eventsWhileAway) +
-            simAnomalies(simBaseline, eventsWhileAway)
+            simAnomalies(simBaseline, eventsWhileAway) +
+            visitAnomalies(departure, now, appVisits, eventsWhileAway)
 
         return IntegrityReport(
             sealStatus = sealStatus,
@@ -108,5 +114,28 @@ object ReportBuilder {
         baseline?.let { replay(it, report = false) }
         events.filter { it.type == JournalEventType.SIM_STATE }.forEach { replay(it, report = true) }
         return out
+    }
+
+    /**
+     * Apps opened while away. Those opened after the last successful unlock
+     * are most likely the user's own, on their way to Argos, so they are kept
+     * as INFO like that unlock.
+     */
+    private fun visitAnomalies(
+        departure: Departure,
+        now: DeviceSnapshot,
+        visits: List<AppVisit>?,
+        events: List<JournalEntry>,
+    ): List<Anomaly> {
+        if (visits == null) {
+            // Revoked while away is already CRITICAL from the snapshot diff.
+            val revoked = departure.snapshot.usageAccessGranted == true && now.usageAccessGranted == false
+            return if (revoked) emptyList() else listOf(Anomaly(Kind.USAGE_ACCESS_MISSING, Severity.INFO))
+        }
+        val lastUnlock = events.lastOrNull { it.type == JournalEventType.UNLOCK_SUCCEEDED }?.timestampMs
+        return visits.map { v ->
+            val probablyUser = lastUnlock != null && v.startMs >= lastUnlock
+            Anomaly(Kind.APP_OPENED, if (probablyUser) Severity.INFO else Severity.WARNING, AppVisits.encode(v))
+        }
     }
 }

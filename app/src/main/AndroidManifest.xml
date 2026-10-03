@@ -9,6 +9,15 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <!--
+      Lets Argos read which apps were opened while you were away, from the
+      usage history Android keeps anyway. Granted by you in the system
+      settings ("Usage access"); nothing leaves the phone.
+    -->
+    <uses-permission
+        android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions" />
+
+    <!--
       Needed to diff the installed apps between departure and return: an app
       that appears while you were away is the classic sign of planted spyware.
       Restricted on Google Play; accepted on F-Droid.

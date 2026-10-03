@@ -18,6 +18,8 @@ data class DeviceSnapshot(
     val deviceAdmins: Set<String>,
     val simState: Int?,
     val simOperator: String?,
+    /** Whether Argos may read the app usage history (null: unknown). */
+    val usageAccessGranted: Boolean? = null,
 ) {
     /**
      * Stable digest bound into the seal, so that editing the stored departure
@@ -37,6 +39,8 @@ data class DeviceSnapshot(
             deviceAdmins.sorted().joinToString(","),
             simState.toString(),
             simOperator.toString(),
-        ).joinToString("\n"),
+        // Appended only when known, so that a departure stored before this
+        // field existed keeps its fingerprint, and therefore its seal words.
+        ).plus(listOfNotNull(usageAccessGranted?.toString())).joinToString("\n"),
     )
 }

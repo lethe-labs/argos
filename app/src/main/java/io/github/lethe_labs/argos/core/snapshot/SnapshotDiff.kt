@@ -65,6 +65,12 @@ object SnapshotDiff {
             )
         }
 
+        // Turning the access off is how someone would hide which apps they
+        // opened, exactly like disabling the device admin hides unlocks.
+        if (before.usageAccessGranted == true && after.usageAccessGranted == false) {
+            out += Anomaly(Kind.USAGE_ACCESS_REVOKED, Severity.CRITICAL)
+        }
+
         return out
     }
 }

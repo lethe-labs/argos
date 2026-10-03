@@ -26,7 +26,8 @@ acts; Argos tells you whether you need to.
 1. **Before leaving**, tap *I'm leaving*. Argos snapshots the device state and
    shows you **three words** to remember. Nothing to write down.
 2. **While you are away**, Argos logs unlock attempts, reboots and SIM
-   removals in a tamper-evident journal.
+   removals in a tamper-evident journal. Android itself keeps track of
+   which apps are opened.
 3. **On return**, tap *I'm back*. Argos shows you the time you left and your
    three words, and you confirm in one tap that this is your departure. It
    then compares the current state with the departure snapshot, reads the
@@ -38,6 +39,7 @@ acts; Argos tells you whether you need to.
 |---|---|
 | Reboots | The system boot counter, readable even if Argos was not running |
 | Failed and successful unlocks | Observation-only device admin (`watch-login`) |
+| Apps opened while you were away (gallery, contacts, messages…), with time and duration | The usage history Android keeps by itself, read on return |
 | Apps installed while you were away | Diff of the installed apps |
 | New accessibility services or device admins | Diff of system settings — the usual signature of stalkerware |
 | USB debugging or developer options switched on | System settings |
@@ -78,6 +80,10 @@ Read this before trusting a *clean* verdict.
 - **A lockscreen bypass through a vulnerability**: it is not an unlock attempt,
   so it is not logged as one.
 - **A new fingerprint or face enrolled**: Android does not let apps list them.
+- **What was looked at inside an app**: Argos sees that the gallery was
+  opened at 15:44 for two minutes, not which photos. Android also only keeps
+  this history for a few days, so the start of a longer absence is lost.
+  Apps you open after your own unlock on return are marked *probably you*.
 - **Which exact SIM card** is inserted: since Android 10, the SIM identifier is
   reserved to the system. Only removal and operator changes are visible.
 
@@ -94,6 +100,7 @@ reports.
 | Permission | Why |
 |---|---|
 | Device admin, `watch-login` policy only | To be told about unlock attempts. It cannot lock or wipe the device. |
+| Usage access (`PACKAGE_USAGE_STATS`), granted in the system settings | To see which apps were opened while you were away. Turning it off while you are away is reported. |
 | `QUERY_ALL_PACKAGES` | To see which apps appeared while you were away |
 | `RECEIVE_BOOT_COMPLETED` | To log reboots |
 

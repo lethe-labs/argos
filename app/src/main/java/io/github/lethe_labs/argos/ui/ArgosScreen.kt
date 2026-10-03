@@ -3,6 +3,7 @@ package io.github.lethe_labs.argos.ui
 import android.app.admin.DevicePolicyManager
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.annotation.StringRes
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
@@ -48,7 +49,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -58,7 +58,9 @@ import io.github.lethe_labs.argos.core.report.IntegrityReport
 import io.github.lethe_labs.argos.core.report.SealStatus
 import io.github.lethe_labs.argos.core.snapshot.Anomaly
 import io.github.lethe_labs.argos.core.snapshot.Severity
+import io.github.lethe_labs.argos.core.usage.AppVisits
 import io.github.lethe_labs.argos.platform.ArgosAdminReceiver
+import io.github.lethe_labs.argos.platform.UsageReader
 import io.github.lethe_labs.argos.ui.theme.ArgosColors
 import io.github.lethe_labs.argos.ui.theme.ArgosType
 import java.text.DateFormat
@@ -78,6 +80,10 @@ fun ArgosScreen(vm: ArgosViewModel = viewModel()) {
                 .putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, context.getString(R.string.admin_explanation)),
         )
     }
+    val usageLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) { vm.refresh() }
+    val eyes = Eyes(activateAdmin, grantUsage = { usageLauncher.launch(UsageReader.settingsIntent()) })
 
     Column(
         Modifier
@@ -90,9 +96,9 @@ fun ArgosScreen(vm: ArgosViewModel = viewModel()) {
         Box(Modifier.weight(1f)) {
             when (val s = state) {
                 UiState.Loading -> CircularProgressIndicator(Modifier.align(Alignment.Center), color = ArgosColors.Watch)
-                is UiState.Idle -> RestContent(s.adminActive, activateAdmin, vm::depart, vm::reportMissingDeparture)
+                is UiState.Idle -> RestContent(s.adminActive, s.usageAccess, eyes, vm::depart, vm::reportMissingDeparture)
                 is UiState.WordsShown -> WordsContent(s.words, vm::wordsNoted)
-                is UiState.Away -> AwayContent(s, activateAdmin, vm::startReturn)
+                is UiState.Away -> AwayContent(s, eyes, vm::startReturn)
                 is UiState.Confirming -> ConfirmContent(s, vm::confirmDeparture)
                 is UiState.ReportShown -> ReportContent(s.report, vm::closeReport)
                 is UiState.Failed -> Text(
@@ -128,7 +134,8 @@ private fun Screen(actions: @Composable ColumnScope.() -> Unit, content: @Compos
 @Composable
 private fun RestContent(
     adminActive: Boolean,
-    onActivate: () -> Unit,
+    usageAccess: Boolean,
+    eyes: Eyes,
     onDepart: () -> Unit,
     onMissingDeparture: () -> Unit,
 ) = Screen(
@@ -140,7 +147,7 @@ private fun RestContent(
     },
 ) {
     Emblem(
-        ring = List(8) { EyeLook(EyeState.CLOSED, ArgosColors.Asleep) },
+        ring = List(Watcher.entries.size) { EyeLook(EyeState.CLOSED, ArgosColors.Asleep) },
         center = EyeLook(EyeState.CLOSED, ArgosColors.Muted),
         size = 240.dp,
         description = stringResource(R.string.emblem_asleep),
@@ -153,7 +160,7 @@ private fun RestContent(
             style = ArgosType.Body, color = ArgosColors.Muted, textAlign = TextAlign.Center,
         )
     }
-    if (adminActive) ReadyPill() else BlindLockCard(onActivate)
+    if (adminActive && usageAccess) ReadyPill() else BlindCards(adminActive, usageAccess, eyes)
 }
 
 @Composable
@@ -164,7 +171,7 @@ private fun WordsContent(words: List<String>, onNoted: () -> Unit) = Screen(
     val opening = remember { Animatable(0f) }
     LaunchedEffect(Unit) { opening.animateTo(1f, tween(1400, easing = LinearEasing)) }
     Emblem(
-        ring = List(8) { EyeLook(EyeState.OPEN, ArgosColors.Watch) },
+        ring = List(Watcher.entries.size) { EyeLook(EyeState.OPEN, ArgosColors.Watch) },
         center = EyeLook(EyeState.OPEN, ArgosColors.Watch),
         size = 200.dp,
         description = stringResource(R.string.emblem_watching),
@@ -187,7 +194,7 @@ private fun WordsContent(words: List<String>, onNoted: () -> Unit) = Screen(
 }
 
 @Composable
-private fun AwayContent(state: UiState.Away, onActivate: () -> Unit, onBack: () -> Unit) = Screen(
+private fun AwayContent(state: UiState.Away, eyes: Eyes, onBack: () -> Unit) = Screen(
     actions = { PrimaryButton(stringResource(R.string.come_back), onBack) },
 ) {
     val pulse by rememberInfiniteTransition(label = "watch").animateFloat(
@@ -196,10 +203,10 @@ private fun AwayContent(state: UiState.Away, onActivate: () -> Unit, onBack: () 
         animationSpec = infiniteRepeatable(tween(2200), RepeatMode.Reverse),
         label = "glow",
     )
+    val blind = blindWatchers(state.adminActive, state.usageAccess)
     val open = EyeLook(EyeState.OPEN, ArgosColors.Watch)
-    val lock = if (state.adminActive) open else EyeLook(EyeState.BLIND, ArgosColors.Warning)
     Emblem(
-        ring = listOf(lock) + List(7) { open },
+        ring = Watcher.entries.map { if (it in blind) EyeLook(EyeState.BLIND, ArgosColors.Warning) else open },
         center = open,
         size = 230.dp,
         description = stringResource(R.string.emblem_watching),
@@ -209,9 +216,9 @@ private fun AwayContent(state: UiState.Away, onActivate: () -> Unit, onBack: () 
         Text(stringResource(R.string.watching_since).uppercase(), style = ArgosType.Label, color = ArgosColors.Muted)
         Text(formatDeparture(state.departedAtMs), style = ArgosType.Display, textAlign = TextAlign.Center)
     }
-    if (!state.adminActive) BlindLockCard(onActivate)
+    BlindCards(state.adminActive, state.usageAccess, eyes)
     Text(
-        stringResource(R.string.eyes_open_count, if (state.adminActive) 8 else 7),
+        stringResource(R.string.eyes_open_count, Watcher.entries.size - blind.size, Watcher.entries.size),
         style = ArgosType.Small, color = ArgosColors.Muted,
     )
 }
@@ -230,7 +237,7 @@ private fun ConfirmContent(state: UiState.Confirming, onAnswer: (Boolean) -> Uni
     },
 ) {
     Emblem(
-        ring = List(8) { EyeLook(EyeState.OPEN, ArgosColors.Gold) },
+        ring = List(Watcher.entries.size) { EyeLook(EyeState.OPEN, ArgosColors.Gold) },
         center = EyeLook(EyeState.OPEN, ArgosColors.Gold),
         size = 160.dp,
         description = stringResource(R.string.emblem_recognising),
@@ -257,6 +264,7 @@ private fun ReportContent(report: IntegrityReport, onDone: () -> Unit) = Screen(
     actions = { PrimaryButton(stringResource(R.string.done), onDone) },
 ) {
     val sightings = sightings(report)
+    val gazeBlind = report.anomalies.any { it.kind == Anomaly.Kind.USAGE_ACCESS_MISSING }
     val quiet = Watcher.entries.filter { it !in sightings }
     val verdictColor = when (report.verdict) {
         IntegrityReport.Verdict.CLEAN -> ArgosColors.Watch
@@ -271,7 +279,13 @@ private fun ReportContent(report: IntegrityReport, onDone: () -> Unit) = Screen(
 
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(18.dp)) {
         Emblem(
-            ring = Watcher.entries.map { EyeLook(EyeState.OPEN, sightings[it]?.color ?: ArgosColors.Watch) },
+            ring = Watcher.entries.map { watcher ->
+                if (watcher == Watcher.GAZE && gazeBlind) {
+                    EyeLook(EyeState.BLIND, ArgosColors.Muted)
+                } else {
+                    EyeLook(EyeState.OPEN, sightings[watcher]?.color ?: ArgosColors.Watch)
+                }
+            },
             center = EyeLook(EyeState.OPEN, verdictColor),
             size = 120.dp,
             description = verdictText,
@@ -408,19 +422,37 @@ private fun ReadyPill() {
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Box(Modifier.size(8.dp).background(ArgosColors.Watch, CircleShape))
-        Text(stringResource(R.string.eyes_ready), style = ArgosType.Small, color = ArgosColors.Muted)
+        Text(stringResource(R.string.eyes_ready, Watcher.entries.size), style = ArgosType.Small, color = ArgosColors.Muted)
     }
 }
 
-/** Shown while the device admin is off: the unlock eye cannot see. */
+/** Opens the system screen that gives a blind eye its sight back. */
+private class Eyes(val activateAdmin: () -> Unit, val grantUsage: () -> Unit)
+
+private fun blindWatchers(adminActive: Boolean, usageAccess: Boolean): Set<Watcher> = buildSet {
+    if (!adminActive) add(Watcher.LOCK)
+    if (!usageAccess) add(Watcher.GAZE)
+}
+
 @Composable
-private fun BlindLockCard(onActivate: () -> Unit) {
+private fun BlindCards(adminActive: Boolean, usageAccess: Boolean, eyes: Eyes) {
+    if (!adminActive) {
+        BlindCard(Watcher.LOCK, R.string.blind_lock_title, R.string.blind_lock_body, eyes.activateAdmin)
+    }
+    if (!usageAccess) {
+        BlindCard(Watcher.GAZE, R.string.blind_gaze_title, R.string.blind_gaze_body, eyes.grantUsage)
+    }
+}
+
+/** An eye that cannot see, and the button that opens it. */
+@Composable
+private fun BlindCard(watcher: Watcher, @StringRes title: Int, @StringRes body: Int, onActivate: () -> Unit) {
     Card(ArgosColors.Warning) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            WatcherIcon(Watcher.LOCK, ArgosColors.Warning)
+            WatcherIcon(watcher, ArgosColors.Warning)
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(stringResource(R.string.blind_lock_title), style = ArgosType.Strong, color = ArgosColors.Warning)
-                Text(stringResource(R.string.blind_lock_body), style = ArgosType.Small, color = ArgosColors.Muted)
+                Text(stringResource(title), style = ArgosType.Strong, color = ArgosColors.Warning)
+                Text(stringResource(body), style = ArgosType.Small, color = ArgosColors.Muted)
             }
         }
         OutlinedButton(
@@ -478,6 +510,36 @@ private fun describe(a: Anomaly): String = when (a.kind) {
         stringResource(R.string.anomaly_unlock_succeeded, formatTime(a.detail))
     }
     Anomaly.Kind.ADMIN_DISABLED -> stringResource(R.string.anomaly_admin_disabled, formatTime(a.detail))
+    Anomaly.Kind.APP_OPENED -> AppVisits.decode(a.detail)?.let { v ->
+        stringResource(
+            if (a.severity == Severity.INFO) R.string.anomaly_app_opened_last else R.string.anomaly_app_opened,
+            appLabel(v.packageName),
+            formatTime(v.startMs),
+            formatDuration(v.durationMs),
+        )
+    } ?: a.detail
+    Anomaly.Kind.USAGE_ACCESS_REVOKED -> stringResource(R.string.anomaly_usage_revoked)
+    Anomaly.Kind.USAGE_ACCESS_MISSING -> stringResource(R.string.anomaly_usage_missing)
+}
+
+/** The name shown under the app's icon, or its package if it is gone. */
+@Composable
+private fun appLabel(packageName: String): String {
+    val pm = LocalContext.current.packageManager
+    return remember(packageName) {
+        runCatching { pm.getApplicationLabel(pm.getApplicationInfo(packageName, 0)).toString() }
+            .getOrDefault(packageName)
+    }
+}
+
+@Composable
+private fun formatDuration(ms: Long): String {
+    val minutes = ms / 60_000L
+    return if (minutes < 1) {
+        stringResource(R.string.duration_under_minute)
+    } else {
+        stringResource(R.string.duration_minutes, minutes.toInt())
+    }
 }
 
 private fun formatTime(epochMs: Long): String =

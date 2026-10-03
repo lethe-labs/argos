@@ -35,8 +35,8 @@ private const val CENTER = 160f
 private const val RING = 118f
 
 /**
- * The emblem: eight eyes on a gold ring around a central eye, one per
- * [Watcher] in the same order. Drawn on a 320-unit grid scaled to [size].
+ * The emblem: one eye per [Watcher] on a gold ring around a central eye, in
+ * the same order, starting at the top. Drawn on a 320-unit grid scaled to [size].
  *
  * @param opening 0 to 1, opens the open eyes one after the other, the central
  *        one last. 1 shows them fully open.
@@ -63,8 +63,9 @@ fun Emblem(
             style = Stroke(1f * k, pathEffect = PathEffect.dashPathEffect(floatArrayOf(2f * k, 5f * k))),
         )
         drawCircle(ArgosColors.Gold.copy(alpha = 0.35f), 62f * k, p(CENTER, CENTER), style = Stroke(0.8f * k))
-        for (i in 0 until 8) {
-            val a = Math.toRadians(-90.0 + 45 * i + 22.5)
+        val step = 360.0 / ring.size
+        for (i in ring.indices) {
+            val a = Math.toRadians(-90.0 + step * i + step / 2)
             val c = cos(a).toFloat()
             val s = sin(a).toFloat()
             drawLine(
@@ -75,17 +76,18 @@ fun Emblem(
         }
 
         ring.forEachIndexed { i, look ->
-            val a = Math.toRadians(-90.0 + 45 * i)
+            val a = Math.toRadians(-90.0 + step * i)
             val at = p(CENTER + RING * cos(a).toFloat(), CENTER + RING * sin(a).toFloat())
             drawCircle(ArgosColors.Night, 21f * k, at)
             drawCircle(ArgosColors.Line, 21f * k, at, style = Stroke(1f * k))
-            drawEye(at, k, look, eyeOpening(opening, i), glow)
+            drawEye(at, k, look, eyeOpening(opening, i, ring.size), glow)
         }
-        drawEye(p(CENTER, CENTER), 3f * k, center, eyeOpening(opening, 8), glow)
+        drawEye(p(CENTER, CENTER), 3f * k, center, eyeOpening(opening, ring.size, ring.size), glow)
     }
 }
 
-private fun eyeOpening(opening: Float, index: Int): Float = (opening * 9f - index).coerceIn(0f, 1f)
+private fun eyeOpening(opening: Float, index: Int, count: Int): Float =
+    (opening * (count + 1) - index).coerceIn(0f, 1f)
 
 /** One eye centred on [at], drawn on a 28-unit-wide almond scaled by [k]. */
 private fun DrawScope.drawEye(at: Offset, k: Float, look: EyeLook, openness: Float, glow: Float) = translate(at.x, at.y) {
