@@ -85,27 +85,30 @@ fun ArgosScreen(vm: ArgosViewModel = viewModel()) {
     ) { vm.refresh() }
     val eyes = Eyes(activateAdmin, grantUsage = { usageLauncher.launch(UsageReader.settingsIntent()) })
 
-    Column(
-        Modifier
-            .fillMaxSize()
-            .background(ArgosColors.Night)
-            .padding(horizontal = 24.dp, vertical = 24.dp),
-    ) {
-        Text(stringResource(R.string.app_name).uppercase(), style = ArgosType.Brand, color = ArgosColors.Gold)
-        Spacer(Modifier.height(16.dp))
-        Box(Modifier.weight(1f)) {
-            when (val s = state) {
-                UiState.Loading -> CircularProgressIndicator(Modifier.align(Alignment.Center), color = ArgosColors.Watch)
-                is UiState.Idle -> RestContent(s.adminActive, s.usageAccess, eyes, vm::depart, vm::reportMissingDeparture)
-                is UiState.WordsShown -> WordsContent(s.words, vm::wordsNoted)
-                is UiState.Away -> AwayContent(s, eyes, vm::startReturn)
-                is UiState.Confirming -> ConfirmContent(s, vm::confirmDeparture)
-                is UiState.ReportShown -> ReportContent(s.report, vm::closeReport)
-                is UiState.Failed -> Text(
-                    stringResource(R.string.error_generic, s.message),
-                    style = ArgosType.Body,
-                    color = ArgosColors.Critical,
-                )
+    // The Surface sets the default text colour: without it, text with no
+    // explicit colour falls back to black, invisible on the night blue.
+    Surface(Modifier.fillMaxSize(), color = ArgosColors.Night, contentColor = ArgosColors.Text) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(horizontal = 24.dp, vertical = 24.dp),
+        ) {
+            Text(stringResource(R.string.app_name).uppercase(), style = ArgosType.Brand, color = ArgosColors.Gold)
+            Spacer(Modifier.height(16.dp))
+            Box(Modifier.weight(1f)) {
+                when (val s = state) {
+                    UiState.Loading -> CircularProgressIndicator(Modifier.align(Alignment.Center), color = ArgosColors.Watch)
+                    is UiState.Idle -> RestContent(s.adminActive, s.usageAccess, eyes, vm::depart, vm::reportMissingDeparture)
+                    is UiState.WordsShown -> WordsContent(s.words, vm::wordsNoted)
+                    is UiState.Away -> AwayContent(s, eyes, vm::startReturn)
+                    is UiState.Confirming -> ConfirmContent(s, vm::confirmDeparture)
+                    is UiState.ReportShown -> ReportContent(s.report, vm::closeReport)
+                    is UiState.Failed -> Text(
+                        stringResource(R.string.error_generic, s.message),
+                        style = ArgosType.Body,
+                        color = ArgosColors.Critical,
+                    )
+                }
             }
         }
     }
